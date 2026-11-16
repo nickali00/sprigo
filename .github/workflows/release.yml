@@ -131,6 +131,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          flags=$(grep -h -E '^CMAKE_(C|CXX)_FLAGS_RELEASE:' src-tauri/target/release/build/whisper-rs-sys-*/out/build/CMakeCache.txt)
+          # find, not a fixed path: newer Cargo moved build-script output out of target/release/build.
+          caches=$(find src-tauri/target -name CMakeCache.txt -path '*whisper-rs-sys*')
+          echo "$caches"
+          [ -n "$caches" ] || { echo "no CMakeCache.txt for whisper-rs-sys" >&2; exit 1; }
+          flags=$(grep -h -E '^CMAKE_(C|CXX)_FLAGS_RELEASE:' $caches || true)
           echo "$flags"
           [ -n "$flags" ] && ! grep -v -E '[-/]O2' <<< "$flags" || { echo "whisper.cpp is not built with /O2 (#135)" >&2; exit 1; }
