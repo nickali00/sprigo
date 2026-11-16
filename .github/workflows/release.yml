@@ -90,6 +90,14 @@ jobs:
         shell: bash
         run: printf 'CMAKE_GENERATOR=Ninja\nCC=clang-cl\nCXX=clang-cl\nCXXFLAGS=/EHsc\n' >> "$GITHUB_ENV" # cc's flags replace CMake's defaults, /EHsc included
 
+      # With the default Visual Studio generator, cmake-rs replaces CMAKE_<LANG>_FLAGS_RELEASE with cc's flags minus
+      # every /O*, so whisper.cpp built unoptimized and was ~10x slower (#135). whisper-rs-sys passes CMAKE_* env
+      # to CMake and cmake-rs keeps a value that is already defined. ARM uses Ninja, which cmake-rs leaves alone.
+      - name: Windows optimization flags
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: printf 'CMAKE_C_FLAGS_RELEASE=/MD /O2 /Ob2 /DNDEBUG\nCMAKE_CXX_FLAGS_RELEASE=/MD /O2 /Ob2 /DNDEBUG /utf-8\n' >> "$GITHUB_ENV"
+
       # RPM refuses the '-' in pre-release versions (1.12.0-1): betas ship .deb and AppImage only on Linux.
       - name: Linux pre-release bundles
         if: startsWith(matrix.platform, 'ubuntu')
@@ -100,8 +108,8 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          # whisper-rs-sys doesn't rerun its build script when GGML_* changes: the suffix drops the native cache.
-          key: ${{ matrix.platform }}${{ matrix.args }}-portable
+          # whisper-rs-sys doesn't rerun its build script when GGML_*/CMAKE_* change: a new suffix drops the old cache.
+          key: ${{ matrix.platform }}${{ matrix.args }}-portable-o2
 
       - run: pnpm install --frozen-lockfile
       - name: Whisper model
@@ -117,3 +125,12 @@ jobs:
           releaseId: ${{ needs.release.outputs.id }} # empty on manual runs: build only
           # ponytail: each job merges latest.json as it finishes; two finishing in the same second could drop a platform. Check it before publishing.
           args: ${{ matrix.args }} ${{ env.BUNDLE_ARGS }}
+
+      # #135 shipped silently: fail the build if whisper.cpp was configured without /O2.
+      - name: Check whisper.cpp is optimized
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          flags=$(grep -h -E '^CMAKE_(C|CXX)_FLAGS_RELEASE:' src-tauri/target/release/build/whisper-rs-sys-*/out/build/CMakeCache.txt)
+          echo "$flags"
+          [ -n "$flags" ] && ! grep -v -E '[-/]O2' <<< "$flags" || { echo "whisper.cpp is not built with /O2 (#135)" >&2; exit 1; }
