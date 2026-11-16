@@ -131,7 +131,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          # find, not a fixed path: newer Cargo moved build-script output out of target/release/build.
+          # find, not a fixed path: Cargo moved build-script output from build/<pkg>-<hash>/ to build/<pkg>/<hash>/.
           caches=$(find src-tauri/target -name CMakeCache.txt -path '*whisper-rs-sys*')
           echo "$caches"
           [ -n "$caches" ] || { echo "no CMakeCache.txt for whisper-rs-sys" >&2; exit 1; }
