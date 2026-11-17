@@ -15,6 +15,7 @@ import "./i18n";
 import "./theme";
 import { AppProvider } from "./store";
 import App from "./App";
+import { WebAccessGate } from "./WebAccess";
 import { isCompanion, isWeb } from "./db";
 import { registerOfflinePage } from "./companion";
 
@@ -22,8 +23,10 @@ if (isCompanion && !isWeb) registerOfflinePage();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <AppProvider>
-      <App />
-    </AppProvider>
+    <WebAccessGate>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </WebAccessGate>
   </React.StrictMode>,
 );

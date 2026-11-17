@@ -39,6 +39,7 @@ playwright-report/
 .private/
 certs/
 models/
+server-data/
 web/__pycache__/
 
 # Local Compose settings

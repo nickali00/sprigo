@@ -11,8 +11,8 @@ cp .env.example .env
 # Edit .env: set SPRIGO_BIND_IP to this server's LAN or VPN address for other devices.
 # Set SPRIGO_UID and SPRIGO_GID to the local account that runs Docker (id -u, id -g).
 ./scripts/web-cert.sh 192.168.1.50  # replace with the address or DNS name used in the browser
-mkdir -p models
-# Make sure the configured UID/GID can write models.
+mkdir -p server-data models
+# Make sure the configured UID/GID can write server-data and models.
 docker compose up -d --build
 ```
 
@@ -26,6 +26,8 @@ If you already have a trusted TLS certificate for the chosen address, place its 
 
 ## Data and devices
 
-Each browser stores its own profiles and progress in IndexedDB. This edition does not synchronize them between devices. Clearing browser data deletes local progress, so export or backup your browser profile before clearing it. The Tauri desktop app keeps its own database. A separate follow-up contribution can add optional server-backed accounts for shared progress.
+By default, each browser stores its profiles and progress in IndexedDB. Settings → Profile offers an optional server account. Create it on the device with the progress you want, leave **Copy the profiles and progress from this device** selected, then sign in on another browser. The shared database lives in `server-data/accounts/`; `server-data/` must be backed up separately. Switching back to local mode preserves that browser's previous local database. Local databases from different devices are not merged. The Tauri desktop app keeps its own data and is not synchronized with these web accounts.
+
+Account sessions use a Secure, HttpOnly cookie. Passwords are hashed. For a private LAN, an account may have no password; anyone who can reach the server and knows its username can then open it. A four-character password is accepted for convenience but is weak; use a stronger one if others can reach the network. There is no self-service password recovery.
 
 Only the configured Ollama model is proxied. The web edition currently transcribes **English only** with `base.en`. Other course languages need a multilingual Whisper model. The generated CA private key and server key stay in the ignored `certs/` directory; never commit them. The separate desktop app's Tailscale phone mode remains available.
