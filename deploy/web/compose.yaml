@@ -20,7 +20,9 @@ services:
       HF_HUB_DISABLE_XET: "1"
       OLLAMA_URL: ${SPRIGO_OLLAMA_URL:-http://host.docker.internal:11434}
       MODEL_NAME: ${SPRIGO_MODEL:-qwen3:8b}
+      DATA_DIR: /app/data
     volumes:
+      - ./server-data:/app/data
       - ./models:/app/models
       - ./certs/ca.crt:/app/certs/ca.crt:ro
       - ./certs/server.crt:/app/certs/server.crt:ro
