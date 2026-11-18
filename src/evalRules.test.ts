@@ -115,6 +115,8 @@ test("dictation listens in the answer's language (#26)", () => {
 });
 
 test("Romanian dictation and accented sentences use Romanian", () => {
+  assert.equal(guessLang("I am here"), "en");
   assert.equal(guessLang("El merge la școală."), "ro");
-  assert.equal(answerLang({ answer: "Ea are doi căței.", context: "" }, "ro", "en"), "ro");
+  assert.equal(answerLang({ answer: "El merge la școală.", context: "" }, "en", "ro"), "ro");
+  assert.equal(answerLang({ answer: "Ea are doi căței.", context: "" }, "en", "ro"), "ro");
 });

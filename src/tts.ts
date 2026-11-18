@@ -44,7 +44,7 @@ const PIPER: Record<string, Record<"f" | "m", string>> = {
   es: { f: "es_ES-sharvard-medium", m: "es_ES-davefx-medium" },
   tr: { f: "tr_TR-dfki-medium", m: "tr_TR-fahrettin-medium" },
   hu: { f: "hu_HU-anna-medium", m: "hu_HU-imre-medium" },
-  ro: { f: "ro_RO-raluca-high", m: "ro_RO-mihai-medium" },
+  ro: { f: "ro_RO-mihai-medium", m: "ro_RO-mihai-medium" },
 };
 // Accents (#35): where an engine has a voice for one, it is used; elsewhere the language's default voice speaks.
 const PIPER_ACCENT: Record<string, Record<"f" | "m", string>> = { "en-GB": { f: "en_GB-cori-medium", m: "en_GB-alan-medium" } };
@@ -223,17 +223,6 @@ const audioCtx = async (mine: number) => {
   await ctx.resume();
   return mine === seq ? ctx : null; // null: cut while waiting; `next` belongs to the newer speak now
 };
-
-/** Unlocks the Web Audio context on a user gesture (required by iOS Safari before any audio can play). */
-export function unlockAudio() {
-  const ctx = (actx ??= new AudioContext());
-  void ctx.resume();
-}
-if (typeof document !== "undefined") {
-  const unlock = () => { unlockAudio(); document.removeEventListener("pointerdown", unlock); document.removeEventListener("touchstart", unlock); };
-  document.addEventListener("pointerdown", unlock);
-  document.addEventListener("touchstart", unlock);
-}
 
 /** Plays local-engine audio for `text`; resolves once the first sentence plays, throws before that to fall back. */
 async function viaWorker(e: Engine, text: string, voice: string, mine: number, done: () => void, speed: number) {
