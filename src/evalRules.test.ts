@@ -113,3 +113,10 @@ test("dictation listens in the answer's language (#26)", () => {
   assert.equal(answerLang({ answer: "kahve", context: "the coffee is hot" }, "en", "tr"), "tr"); // short answer: the source decides
   assert.equal(answerLang({ answer: "coffee", context: "" }, "en", "tr"), "en"); // listen_type
 });
+
+test("Romanian dictation and accented sentences use Romanian", () => {
+  assert.equal(guessLang("I am here"), "en");
+  assert.equal(guessLang("El merge la școală."), "ro");
+  assert.equal(answerLang({ answer: "El merge la școală.", context: "" }, "en", "ro"), "ro");
+  assert.equal(answerLang({ answer: "Ea are doi căței.", context: "" }, "en", "ro"), "ro");
+});
