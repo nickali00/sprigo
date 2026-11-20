@@ -121,6 +121,17 @@ test("speaking check names the words it didn't catch", async () => {
   assert.deepEqual(speechMisses("Guten Tag", "gutentag morgen"), []);
 });
 
+test("Turkish İ/I match their lowercase forms, ı and i stay different (#96)", async () => {
+  const { speechMisses, normalize } = await import("./activities.ts");
+  assert.deepEqual(speechMisses("İstanbul'da", "istanbul'da", "tr"), []);
+  assert.deepEqual(speechMisses("İstanbul'da", "istanbul'da"), [], "no locale: the stray dot is dropped");
+  assert.ok(matchesAnswer("ışık", { answer: "Işık", accepted: [] }, "tr"));
+  assert.ok(matchesAnswer("iyi", { answer: "İyi", accepted: [] }, "tr"));
+  assert.ok(!matchesAnswer("isik", { answer: "Işık", accepted: [] }, "tr"), "ı vs i is a real mistake");
+  assert.ok(matchesAnswer("i like it", { answer: "I like it", accepted: [] }, "en"), "English I is still i");
+  assert.equal(normalize("Işık", "en"), "işık");
+});
+
 test("sameWords: the answer's words in any order, nothing more or less", () => {
   assert.ok(sameWords("Anna a nevem", "A nevem Anna."));
   assert.ok(!sameWords("A nevem Anna Anna", "A nevem Anna"));
@@ -154,4 +165,15 @@ test("listening practice can ask a few words and draw wrong options from a large
   assert.equal(it.options[it.answer], "e");
   assert.deepEqual(listenItems([], "?", 10, pool), []);
   assert.deepEqual(listenItems([pool[0]], "?", 10, pool.slice(0, 3)), []);
+});
+
+test("cedilla spellings match only in Romanian", async () => {
+  const { speechMisses } = await import("./activities.ts");
+  const item = { answer: "Și în țară", accepted: [] };
+  assert.equal(matchesAnswer("Şi în ţară", item, "ro"), true);
+  assert.equal(matchesAnswer("Si în tara", item, "ro"), false);
+  assert.equal(matchesAnswer("șey", { answer: "şey", accepted: [] }, "tr"), false);
+  assert.equal(matchesAnswer("șey", { answer: "şey", accepted: [] }), false);
+  assert.deepEqual(speechMisses("Ce țară?", "Ce ţară?", "ro"), []);
+  assert.deepEqual(speechMisses("şey", "șey", "tr"), ["şey"]);
 });
