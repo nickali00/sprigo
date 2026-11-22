@@ -37,6 +37,11 @@
     "resources": [
       "resources/*"
     ],
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    },
     "macOS": {
       "signingIdentity": "-",
       "minimumSystemVersion": "11.0",
