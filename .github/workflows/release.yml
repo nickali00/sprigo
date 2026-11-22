@@ -129,6 +129,25 @@ jobs:
           # ponytail: each job merges latest.json as it finishes; two finishing in the same second could drop a platform. Check it before publishing.
           args: ${{ matrix.args }} ${{ env.BUNDLE_ARGS }}
 
+      # #138: fail the build if the AppImage lacks the GStreamer plugins WebKitGTK needs for audio.
+      - name: Check AppImage audio plugins
+        if: startsWith(matrix.platform, 'ubuntu')
+        shell: bash
+        run: |
+          img=$(find src-tauri/target -name '*.AppImage' | head -1)
+          [ -n "$img" ] || { echo "no AppImage" >&2; exit 1; }
+          chmod +x "$img" && (cd /tmp && "$OLDPWD/$img" --appimage-extract >/dev/null)
+          ls /tmp/squashfs-root/usr/lib/gstreamer-1.0/
+          for p in libgstapp libgstautodetect libgstpulseaudio libgstpipewire; do
+            ls /tmp/squashfs-root/usr/lib/gstreamer-1.0/$p.so >/dev/null || { echo "AppImage lacks $p (#138)" >&2; exit 1; }
+          done
+      - name: Upload AppImage (manual runs)
+        if: github.event_name == 'workflow_dispatch' && startsWith(matrix.platform, 'ubuntu')
+        uses: actions/upload-artifact@v7
+        with:
+          name: appimage-${{ matrix.platform }}
+          path: src-tauri/target/**/*.AppImage
+
       # #135 shipped silently: fail the build if whisper.cpp was configured without /O2.
       - name: Check whisper.cpp is optimized
         if: runner.os == 'Windows'
