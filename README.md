@@ -16,6 +16,8 @@
 
 <p align="center"><a href="https://www.opensourcealternatives.to"><img src="https://www.opensourcealternatives.to/badge-osa.svg" alt="Listed on Open Source Alternatives"></a></p>
 
+<p align="center"><a href="https://buymeacoffee.com/ozerozdas"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-ffdd00?logo=buymeacoffee&logoColor=black" alt="Buy me a coffee"></a></p>
+
 <p align="center"><a href="https://youtu.be/gvpYX0C-fq4"><img src="docs/media/trailer.jpg" width="720" alt="Watch the 24-second Sprigo trailer"></a><br><sub>▶ Click to watch the 24-second trailer</sub></p>
 
 ## What it does
