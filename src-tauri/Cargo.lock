@@ -4520,6 +4520,7 @@ dependencies = [
  "tauri-plugin-sql",
  "tauri-plugin-updater",
  "tiny_http",
+ "webkit2gtk",
  "whisper-rs",
 ]
 
