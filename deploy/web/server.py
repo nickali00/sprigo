@@ -9,6 +9,7 @@ import io
 import json
 import os
 import ssl
+import time
 import threading
 import tempfile
 import wave
@@ -21,7 +22,7 @@ WHISPER_DIR = '/app/models'
 _WHISPER = None
 _WHISPER_LOCK = threading.Lock()
 MODEL = os.environ.get('MODEL_NAME', 'qwen3:8b')
-MAX_BODY = 4 * 1024 * 1024
+MAX_BODY = 2 * 1024 * 1024
 ALLOWED = {'/api/generate', '/api/chat', '/v1/chat/completions'}
 
 
@@ -57,6 +58,10 @@ class App(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DIST), **kwargs)
 
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(15)
+
     def end_headers(self):
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
@@ -79,7 +84,19 @@ class App(SimpleHTTPRequestHandler):
             raise ValueError('Missing content length')
         if size < 1 or size > limit:
             raise ValueError('Request body too large or empty')
-        return self.rfile.read(size)
+        chunks = []
+        deadline = time.monotonic() + 15
+        while size:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('Request body timed out')
+            self.connection.settimeout(min(remaining, 5))
+            chunk = self.rfile.read(min(size, 65536))
+            if not chunk:
+                raise ValueError('Incomplete request body')
+            chunks.append(chunk)
+            size -= len(chunk)
+        return b''.join(chunks)
 
     def do_GET(self):
         path = urlsplit(self.path).path
@@ -102,6 +119,10 @@ class App(SimpleHTTPRequestHandler):
     def do_POST(self):
         path = urlsplit(self.path).path
         try:
+            if self.headers.get('Origin') != f"https://{self.headers.get('Host')}":
+                return self.reply(403, b'Origin rejected')
+            if path.startswith('/ollama/') and self.headers.get('Content-Type', '').split(';', 1)[0].strip().lower() != 'application/json':
+                return self.reply(415, b'JSON required')
             body = self.read_body()
             if path == '/transcribe':
                 language = parse_qs(urlsplit(self.path).query).get('lang', ['en'])[0][:2]
@@ -131,11 +152,53 @@ class App(SimpleHTTPRequestHandler):
             return self.reply(400, str(exc).encode())
         except HTTPError as exc:
             return self.reply(exc.code, exc.read()[:1000])
-        except (URLError, TimeoutError) as exc:
+        except TimeoutError as exc:
+            return self.reply(408, str(exc).encode())
+        except URLError as exc:
             return self.reply(502, str(exc).encode())
         except Exception as exc:
             self.log_error('transcription failed: %s', exc)
             return self.reply(500, b'Transcription failed')
+
+
+class LimitedServer(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def __init__(self, address, handler, tls=None):
+        self.tls = tls
+        self.slots = threading.BoundedSemaphore(8)
+        super().__init__(address, handler)
+
+    def get_request(self):
+        connection, address = super().get_request()
+        connection.settimeout(10)
+        if self.tls:
+            try:
+                connection = self.tls.wrap_socket(connection, server_side=True)
+            except OSError:
+                connection.close()
+                raise
+        return connection, address
+
+    def process_request(self, request, client_address):
+        if not self.slots.acquire(blocking=False):
+            try:
+                request.sendall(b'HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
+            except OSError:
+                pass
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self.slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self.slots.release()
 
 
 class CertOnly(BaseHTTPRequestHandler):
@@ -152,10 +215,9 @@ class CertOnly(BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    cert_server = ThreadingHTTPServer(('0.0.0.0', 1432), CertOnly)
+    cert_server = LimitedServer(('0.0.0.0', 1432), CertOnly)
     threading.Thread(target=cert_server.serve_forever, daemon=True).start()
-    server = ThreadingHTTPServer(('0.0.0.0', 1431), App)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(str(CERTS/'server.crt'), str(CERTS/'server.key'))
-    server.socket = context.wrap_socket(server.socket, server_side=True)
+    server = LimitedServer(('0.0.0.0', 1431), App, context)
     server.serve_forever()

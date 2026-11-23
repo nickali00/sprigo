@@ -10,8 +10,8 @@ RUN pnpm build
 
 FROM python:3.12-slim
 WORKDIR /app
-RUN pip install --no-cache-dir faster-whisper==1.2.1 "av<19"
+RUN pip install --no-cache-dir faster-whisper==1.2.1 av==18.1.0
 COPY --from=build /src/dist /app/dist
-COPY web/server.py /app/
+COPY deploy/web/server.py /app/
 EXPOSE 1431 1432
 CMD ["python", "-u", "/app/server.py"]

@@ -1,8 +1,8 @@
 services:
   sprigo-web:
     build:
-      context: .
-      dockerfile: Dockerfile.web
+      context: ../..
+      dockerfile: deploy/web/Dockerfile
     image: sprigo-web:local
     container_name: sprigo-web
     restart: unless-stopped

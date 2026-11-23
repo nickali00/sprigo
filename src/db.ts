@@ -47,6 +47,7 @@ async function browserDb(): Promise<Db> {
   const KEY = "sprigo.devdb";
   const saved = localStorage.getItem(KEY);
   const db = new SQL.Database(saved ? Uint8Array.from(atob(saved), (c) => c.charCodeAt(0)) : undefined);
+  // Chunked: spreading the whole export into fromCharCode overflows the stack once the database passes ~100 KB.
   const b64 = (u: Uint8Array) => { let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
   return wrapSqlJs(db, () => localStorage.setItem(KEY, b64(db.export())));
 }

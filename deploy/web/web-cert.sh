@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 host=${1:-}
 if [[ ! "$host" =~ ^[A-Za-z0-9.-]+$ ]]; then
   echo "Usage: $0 <LAN IP address or DNS name>" >&2
   exit 2
 fi
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 mkdir -p certs
 if [[ -e certs/ca.key || -e certs/server.key ]]; then
   echo "Existing certificate keys found in certs/. Move them away before generating a new CA." >&2
@@ -18,10 +19,11 @@ else
   san="DNS:$host"
 fi
 openssl req -x509 -newkey rsa:3072 -nodes -days 3650 -sha256 \
-  -subj "/CN=Sprigo local CA" -keyout certs/ca.key -out certs/ca.crt
+  -subj "/CN=Sprigo local CA" -addext "basicConstraints=critical,CA:TRUE" \
+  -addext "keyUsage=critical,keyCertSign,cRLSign" -keyout certs/ca.key -out certs/ca.crt
 openssl req -new -newkey rsa:3072 -nodes -sha256 \
   -subj "/CN=$host" -keyout certs/server.key -out certs/server.csr
-printf 'subjectAltName=%s\nextendedKeyUsage=serverAuth\n' "$san" > certs/server.ext
+printf 'subjectAltName=%s\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n' "$san" > certs/server.ext
 openssl x509 -req -in certs/server.csr -CA certs/ca.crt -CAkey certs/ca.key \
   -CAcreateserial -days 825 -sha256 -extfile certs/server.ext -out certs/server.crt
 rm certs/server.csr certs/server.ext certs/ca.srl
