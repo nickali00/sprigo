@@ -12,7 +12,6 @@ import { dailyBackup, openTauriDb, snapshot } from "./datadir";
 import { deleteProfileSql } from "./profileDelete";
 import type { Baseline, Conditions, SessionRow, SpeechSummary } from "./speech";
 import { remoteDb, serveCompanion } from "./companion";
-import { accountDb, sharedWebMode } from "./webSql";
 import { evictIds, type Memory, type MemoryOps, type MemorySource } from "./memory";
 import { grade, newCard, review, strengthOf, type Grade, type WordCard } from "./srs";
 import { USAGE_SQL, type AiFeature, type UsageRow } from "./usage";
@@ -61,13 +60,13 @@ export const isCompanion = !isTauri && (location.hostname.endsWith(".ts.net") ||
 function db() {
   return (dbP ??= (async () => {
     if (isCompanion && !isWeb) return remoteDb(); // the desktop already migrated it
-    const d = await (isTauri ? openTauriDb() : isWeb && sharedWebMode() ? accountDb() : (import.meta.env.DEV || isWeb) ? browserDb() : Promise.reject(new Error("Sprigo needs the Tauri shell")));
+    const d = await (isTauri ? openTauriDb() : isWeb && localStorage.getItem("sprigo.web.mode") === "account" ? (await import("./webSql")).accountDb() : (import.meta.env.DEV || isWeb) ? browserDb() : Promise.reject(new Error("Sprigo needs the Tauri shell")));
     await runMigrations(d, MIGRATIONS, isTauri ? (v) => snapshot(d, `pre-v${v}-${Date.now()}.db`).then(() => {}) : undefined);
     if (isWeb) {
       const response = await fetch("/web-config", { cache: "no-store" });
       if (!response.ok) throw new Error("Could not load the web server configuration");
       const { model } = await response.json();
-      const ai = JSON.stringify({ provider: "ollama", baseURL: `${location.origin}/ollama`, model });
+      const ai = JSON.stringify({ provider: "ollama", baseURL: "", model });
       await d.execute("INSERT INTO device_settings(key, value) VALUES ($1, $2) ON CONFLICT(key) DO UPDATE SET value = $2 WHERE device_settings.value IS NOT $2", ["ai", ai]);
     }
     if (isTauri) await dailyBackup(d).catch((e) => console.error("daily backup", e));

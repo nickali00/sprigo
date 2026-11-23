@@ -21,6 +21,7 @@ services:
       OLLAMA_URL: ${SPRIGO_OLLAMA_URL:-http://host.docker.internal:11434}
       MODEL_NAME: ${SPRIGO_MODEL:-qwen3:8b}
       DATA_DIR: /app/data
+      SPRIGO_ACCESS_PASSWORD: ${SPRIGO_ACCESS_PASSWORD:?Set this in deploy/web/.env}
     volumes:
       - ./server-data:/app/data
       - ./models:/app/models

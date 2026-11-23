@@ -1,7 +1,8 @@
-"""Per-account SQLite databases with optional passwords for standalone Sprigo Web."""
+"""Per-account SQLite databases for standalone Sprigo Web."""
 from __future__ import annotations
 
 import hashlib
+from contextlib import contextmanager
 import hmac
 import re
 import secrets
@@ -11,6 +12,12 @@ import time
 from pathlib import Path
 
 SESSION_SECONDS = 30 * 24 * 3600
+MAX_ACCOUNTS = 32
+MAX_IMPORT_DB = 8 * 1024 * 1024
+MAX_DB_BYTES = 64 * 1024 * 1024
+MAX_ROWS = 5000
+MAX_RESULT_BYTES = 8 * 1024 * 1024
+QUERY_SECONDS = 3
 USERNAME = re.compile(r"[A-Za-z0-9_.-]{3,32}\Z")
 DENIED = {sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH, sqlite3.SQLITE_CREATE_VTABLE,
           sqlite3.SQLITE_DROP_VTABLE}
@@ -20,11 +27,18 @@ class AccountError(ValueError):
     pass
 
 
+class StaleRevision(AccountError):
+    pass
+
+
 class Accounts:
     def __init__(self, root: Path):
         self.root = root
+        self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.root.chmod(0o700)
         self.db_dir = root / 'accounts'
-        self.db_dir.mkdir(parents=True, exist_ok=True)
+        self.db_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.db_dir.chmod(0o700)
         self.meta = root / 'accounts.sqlite3'
         self.lock = threading.RLock()
         self.db_locks: dict[str, threading.Lock] = {}
@@ -41,11 +55,17 @@ class Accounts:
             ''')
             if 'revision' not in [row[1] for row in db.execute('PRAGMA table_info(accounts)')]:
                 db.execute('ALTER TABLE accounts ADD COLUMN revision INTEGER NOT NULL DEFAULT 0')
+        self.meta.chmod(0o600)
 
+    @contextmanager
     def _meta(self):
         db = sqlite3.connect(self.meta, timeout=20)
-        db.execute('PRAGMA foreign_keys=ON')
-        return db
+        try:
+            db.execute('PRAGMA foreign_keys=ON')
+            with db:
+                yield db
+        finally:
+            db.close()
 
     @staticmethod
     def _hash(password: str, salt: bytes) -> bytes:
@@ -64,28 +84,34 @@ class Accounts:
         username = username.strip()
         if not USERNAME.fullmatch(username):
             raise AccountError('Username: 3–32 letters, numbers, dots, dashes or underscores')
-        if password and not 4 <= len(password) <= 128:
-            raise AccountError('Password must be 4–128 characters or empty')
-        if import_db is not None and (len(import_db) < 100 or len(import_db) > 32 * 1024 * 1024 or not import_db.startswith(b'SQLite format 3\0')):
+        if not 8 <= len(password) <= 128:
+            raise AccountError('Password must be 8–128 characters')
+        if import_db is not None and (len(import_db) < 100 or len(import_db) > MAX_IMPORT_DB or not import_db.startswith(b'SQLite format 3\0')):
             raise AccountError('Invalid local database')
         account_id = secrets.token_hex(16)
         path = self.db_dir / f'{account_id}.sqlite3'
         if import_db is not None:
             path.write_bytes(import_db)
             try:
-                with sqlite3.connect(path) as db:
+                db = sqlite3.connect(path)
+                try:
                     if db.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
                         raise AccountError('Local database integrity check failed')
                     if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='profiles'").fetchone():
                         raise AccountError('Local database has no Sprigo profiles')
+                finally:
+                    db.close()
             except Exception:
                 path.unlink(missing_ok=True)
                 raise
         else:
             sqlite3.connect(path).close()
+        path.chmod(0o600)
         salt = secrets.token_bytes(16)
         try:
             with self.lock, self._meta() as db:
+                if db.execute('SELECT count(*) FROM accounts').fetchone()[0] >= MAX_ACCOUNTS:
+                    raise AccountError('Account limit reached')
                 db.execute('INSERT INTO accounts(id, username, salt, password_hash, created_at) VALUES (?, ?, ?, ?, ?)',
                            (account_id, username, salt, self._hash(password, salt), int(time.time())))
                 token = self._session(db, account_id)
@@ -102,7 +128,10 @@ class Accounts:
             raise AccountError('Invalid username or password')
         with self.lock, self._meta() as db:
             row = db.execute('SELECT id, salt, password_hash FROM accounts WHERE username = ?', (username.strip(),)).fetchone()
-            if row is None or not hmac.compare_digest(self._hash(password, row[1]), row[2]):
+            # Hash a dummy secret too, so missing usernames take comparable time.
+            candidate = self._hash(password, row[1] if row else bytes(16))
+            expected = row[2] if row else bytes(len(candidate))
+            if not hmac.compare_digest(candidate, expected) or row is None or not password:
                 raise AccountError('Invalid username or password')
             return self._session(db, row[0])
 
@@ -126,9 +155,16 @@ class Accounts:
             with self.lock, self._meta() as db:
                 db.execute('DELETE FROM sessions WHERE token_hash = ?', (hashlib.sha256(token.encode()).hexdigest(),))
 
-    def sql(self, account_id: str, kind: str, statement: str, args: list):
+    @staticmethod
+    def _bindings(statement: str, args: list):
+        # Python sqlite3 treats $1 as a named parameter, unlike sql.js.
+        return {str(i + 1): value for i, value in enumerate(args)} if re.search(r'\$[1-9][0-9]*', statement) else args
+
+    def sql(self, account_id: str, kind: str, statement: str, args: list, expected_revision: int | None = None):
         if kind not in ('select', 'execute') or not isinstance(statement, str) or len(statement) > 100_000 or not isinstance(args, list) or len(args) > 1000:
             raise AccountError('Invalid SQL request')
+        if expected_revision is not None and (type(expected_revision) is not int or expected_revision < 0):
+            raise AccountError('Invalid revision')
         lead = statement.lstrip().split(None, 1)[0].lower().rstrip(';') if statement.strip() else ''
         if kind == 'select' and lead not in ('select', 'with', 'pragma'):
             raise AccountError('Invalid read query')
@@ -140,11 +176,21 @@ class Accounts:
         with self.lock:
             lock = self.db_locks.setdefault(account_id, threading.Lock())
         with lock:
+            if kind == 'execute' and expected_revision is not None and self.revision(account_id) != expected_revision:
+                raise StaleRevision('Account changed on another device; reload before writing')
             db = sqlite3.connect(path, timeout=20)
             db.row_factory = sqlite3.Row
+            db.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, 4 * 1024 * 1024)
+            page_size = db.execute('PRAGMA page_size').fetchone()[0]
+            db.execute(f'PRAGMA max_page_count={MAX_DB_BYTES // page_size}')
             db.execute('PRAGMA foreign_keys=ON')
             db.execute('PRAGMA trusted_schema=OFF')
             db.execute('PRAGMA busy_timeout=5000')
+            if kind == 'select':
+                db.execute('PRAGMA query_only=ON')
+            deadline = time.monotonic() + QUERY_SECONDS
+            db.set_progress_handler(lambda: int(time.monotonic() > deadline), 1000)
+            bindings = self._bindings(statement, args)
             def authorize(action, arg1, arg2, db_name, source):
                 if action in DENIED:
                     return sqlite3.SQLITE_DENY
@@ -156,10 +202,20 @@ class Accounts:
             db.set_authorizer(authorize)
             try:
                 if kind == 'select':
-                    return [dict(row) for row in db.execute(statement, args).fetchall()]
+                    rows = []
+                    total = 0
+                    for row in db.execute(statement, bindings):
+                        if len(rows) >= MAX_ROWS:
+                            raise AccountError('Query returned too many rows')
+                        item = dict(row)
+                        total += sum(len(str(value).encode('utf-8')) for value in item.values())
+                        if total > MAX_RESULT_BYTES:
+                            raise AccountError('Query result too large')
+                        rows.append(item)
+                    return rows
                 before = db.total_changes
                 if args:
-                    db.execute(statement, args)
+                    db.execute(statement, bindings)
                 elif ';' in statement.strip().rstrip(';'):
                     db.executescript(statement)
                 else:

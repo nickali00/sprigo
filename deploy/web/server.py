@@ -5,15 +5,22 @@ from pathlib import Path
 from urllib.parse import urlsplit, parse_qs
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
+import base64
+import hmac
+import binascii
 import io
 import json
 import os
+import sqlite3
 import ssl
-import time
+import socket
+import struct
 import threading
 import tempfile
+import time
 import wave
 from faster_whisper import WhisperModel
+from accounts import Accounts, AccountError, StaleRevision, SESSION_SECONDS
 
 DIST = Path('/app/dist')
 CERTS = Path('/app/certs')
@@ -23,7 +30,29 @@ _WHISPER = None
 _WHISPER_LOCK = threading.Lock()
 MODEL = os.environ.get('MODEL_NAME', 'qwen3:8b')
 MAX_BODY = 2 * 1024 * 1024
+MAX_ACCOUNT_BODY = 12 * 1024 * 1024
+ACCESS_PASSWORD = os.environ.get("SPRIGO_ACCESS_PASSWORD", "")
+ACCOUNTS = Accounts(Path(os.environ.get('DATA_DIR', '/app/data')))
+ATTEMPTS: dict[tuple[str, str], list[float]] = {}
+ATTEMPTS_LOCK = threading.Lock()
 ALLOWED = {'/api/generate', '/api/chat', '/v1/chat/completions'}
+
+
+def limited(key: tuple[str, str], max_attempts: int, window: int, consume: bool = False) -> bool:
+    now = time.time()
+    with ATTEMPTS_LOCK:
+        for entry, times in list(ATTEMPTS.items()):
+            fresh = [t for t in times if t > now - 3600]
+            if fresh:
+                ATTEMPTS[entry] = fresh
+            else:
+                del ATTEMPTS[entry]
+        recent = [t for t in ATTEMPTS.get(key, []) if t > now - window]
+        if len(recent) >= max_attempts:
+            return True
+        if consume:
+            ATTEMPTS.setdefault(key, []).append(now)
+        return False
 
 
 def wav_from_float32(body):
@@ -62,6 +91,20 @@ class App(SimpleHTTPRequestHandler):
         super().setup()
         self.connection.settimeout(15)
 
+    def authorized(self):
+        header = self.headers.get("Authorization", "")
+        try:
+            scheme, encoded = header.split(" ", 1)
+            supplied = base64.b64decode(encoded, validate=True).decode("utf-8")
+            valid = scheme.lower() == "basic" and supplied.startswith("sprigo:")
+            valid = valid and hmac.compare_digest(supplied[7:], ACCESS_PASSWORD)
+        except (ValueError, UnicodeError, binascii.Error):
+            valid = False
+        if valid:
+            return True
+        self.reply(401, b"Access password required", headers={"WWW-Authenticate": 'Basic realm="Sprigo Web", charset="UTF-8"'})
+        return False
+
     def end_headers(self):
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
@@ -98,8 +141,74 @@ class App(SimpleHTTPRequestHandler):
             size -= len(chunk)
         return b''.join(chunks)
 
+    def token(self):
+        for part in self.headers.get('Cookie', '').split(';'):
+            if part.strip().startswith('sprigo_session='):
+                return part.strip().split('=', 1)[1]
+        return None
+
+    def account(self):
+        return ACCOUNTS.session(self.token())
+
+    def account_post(self, path):
+        if self.headers.get('X-Sprigo') != '1':
+            return self.reply(403, b'Request rejected')
+        if self.headers.get('Content-Type', '').split(';', 1)[0].strip().lower() != 'application/json':
+            return self.reply(415, b'JSON required')
+        body = self.read_body(MAX_ACCOUNT_BODY if path == '/account/register' else MAX_BODY)
+        data = json.loads(body)
+        if not isinstance(data, dict):
+            return self.reply(400, b'Invalid request')
+        if path == '/account/register':
+            if limited(('register', self.client_address[0]), 3, 3600, consume=True):
+                return self.reply(429, b'Too many registrations')
+            encoded = data.get('localDb')
+            local = base64.b64decode(encoded, validate=True) if encoded is not None else None
+            token = ACCOUNTS.register(data.get('username', ''), data.get('password', ''), local)
+            return self.reply(201, b'{"ok":true}', 'application/json',
+                {'Set-Cookie': f'sprigo_session={token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age={SESSION_SECONDS}'})
+        if path == '/account/login':
+            ip = self.client_address[0]
+            username = data.get('username', '')
+            name = username.strip().casefold() if isinstance(username, str) else ''
+            if limited(('login-ip', ip), 8, 600) or limited(('login-name', name), 8, 600):
+                return self.reply(429, b'Too many login attempts. Try again later.')
+            try:
+                token = ACCOUNTS.login(username, data.get('password', ''))
+            except AccountError:
+                limited(('login-ip', ip), 8, 600, consume=True)
+                limited(('login-name', name), 8, 600, consume=True)
+                return self.reply(401, b'Invalid username or password')
+            return self.reply(200, b'{"ok":true}', 'application/json',
+                {'Set-Cookie': f'sprigo_session={token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age={SESSION_SECONDS}'})
+        account = self.account()
+        if not account:
+            return self.reply(401, b'Login required')
+        if path == '/account/logout':
+            ACCOUNTS.logout(self.token())
+            return self.reply(200, b'{"ok":true}', 'application/json',
+                {'Set-Cookie': 'sprigo_session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'})
+        if path == '/account/sql':
+            kind = data.get('kind')
+            revision = data.get('revision')
+            if kind == 'execute' and (type(revision) is not int or revision < 0):
+                return self.reply(400, b'Expected revision required')
+            answer = ACCOUNTS.sql(account[0], kind, data.get('sql'), data.get('args', []), revision if kind == 'execute' else None)
+            return self.reply(200, json.dumps(answer).encode(), 'application/json')
+        return self.reply(404, b'Not found')
+
     def do_GET(self):
         path = urlsplit(self.path).path
+        if path not in ('/health', '/ca.crt') and not self.authorized():
+            return
+        if path == '/account/me':
+            account = self.account()
+            return self.reply(200, json.dumps({'username': account[1], 'revision': ACCOUNTS.revision(account[0])}).encode(), 'application/json') if account else self.reply(401, b'Login required')
+        if path == '/account/revision':
+            account = self.account()
+            return self.reply(200, json.dumps({'revision': ACCOUNTS.revision(account[0])}).encode(), 'application/json') if account else self.reply(401, b'Login required')
+        if path.startswith('/account/'):
+            return self.reply(404, b'Not found')
         if path == '/health':
             return self.reply(200, b'{"ok":true}', 'application/json')
         if path == '/web-config':
@@ -119,8 +228,12 @@ class App(SimpleHTTPRequestHandler):
     def do_POST(self):
         path = urlsplit(self.path).path
         try:
+            if not self.authorized():
+                return
             if self.headers.get('Origin') != f"https://{self.headers.get('Host')}":
                 return self.reply(403, b'Origin rejected')
+            if path.startswith('/account/'):
+                return self.account_post(path)
             if path.startswith('/ollama/') and self.headers.get('Content-Type', '').split(';', 1)[0].strip().lower() != 'application/json':
                 return self.reply(415, b'JSON required')
             body = self.read_body()
@@ -148,7 +261,9 @@ class App(SimpleHTTPRequestHandler):
                         self.wfile.flush()
                 return
             return self.reply(404, b'Not found')
-        except (ValueError, json.JSONDecodeError) as exc:
+        except StaleRevision as exc:
+            return self.reply(409, str(exc).encode())
+        except (ValueError, json.JSONDecodeError, binascii.Error, sqlite3.Error) as exc:
             return self.reply(400, str(exc).encode())
         except HTTPError as exc:
             return self.reply(exc.code, exc.read()[:1000])
@@ -215,6 +330,8 @@ class CertOnly(BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+    if len(ACCESS_PASSWORD) < 20:
+        raise SystemExit('SPRIGO_ACCESS_PASSWORD must be at least 20 characters')
     cert_server = LimitedServer(('0.0.0.0', 1432), CertOnly)
     threading.Thread(target=cert_server.serve_forever, daemon=True).start()
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApp } from "../store";
 import { languages } from "../i18n";
@@ -13,9 +13,10 @@ import { notifyAllowed } from "../notify";
 import { betaOn, findUpdate, UpdateSheet } from "../Update";
 import { DataSection } from "./DataSettings";
 import { InfoTip, SttRow, TtsRow } from "./VoiceSettings";
-import { WebAccountControls } from "../WebAccess";
 import { Icon, type IconName } from "../icons";
 import { HelpButton, HelpSheet, openLink } from "../Help";
+
+const WebAccountControls = lazy(() => import("../WebAccess").then((module) => ({ default: module.WebAccountControls })));
 
 const TEXT_SIZES = [1, 1.15, 1.3];
 const gap = (g: string) => ({ "--od-gap": g }) as React.CSSProperties;
@@ -411,7 +412,7 @@ export function Settings() {
             <button className="btn btn-ghost" onClick={() => openSheet(<><h3 style={{ marginBottom: 14 }}>{t("settings.editProfile")}</h3><ProfileForm initial={profile!} onDone={closeSheet} /></>)}>{t("settings.edit")}</button>
           </div>
           <button className="btn btn-ghost btn-block mobile-only" onClick={logout}>{t("settings.logout")}</button>
-          {isWeb && <WebAccountControls />}
+          {isWeb && <Suspense fallback={null}><WebAccountControls /></Suspense>}
         </>}
 
         {tab === "prefs" && <>

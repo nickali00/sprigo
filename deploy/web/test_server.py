@@ -1,14 +1,24 @@
-"""Request guard checks for the experimental web server."""
+"""HTTP guards for the optional account server."""
+import atexit
+import base64
 import json
+import os
 import sys
+import tempfile
 import threading
 import unittest
 from types import SimpleNamespace
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+_test_data = tempfile.TemporaryDirectory()
+atexit.register(_test_data.cleanup)
+os.environ['DATA_DIR'] = _test_data.name
+os.environ['SPRIGO_ACCESS_PASSWORD'] = 'test-only-access-password-12345'
 sys.modules.setdefault('faster_whisper', SimpleNamespace(WhisperModel=object))
 from server import App, LimitedServer, MAX_BODY  # noqa: E402
+
+AUTH = 'Basic ' + base64.b64encode(b'sprigo:test-only-access-password-12345').decode()
 
 
 class ServerTests(unittest.TestCase):
@@ -18,32 +28,49 @@ class ServerTests(unittest.TestCase):
         self.thread.start()
         self.addCleanup(self.server.server_close)
         self.addCleanup(self.server.shutdown)
+        self.origin = f'https://127.0.0.1:{self.server.server_port}'
 
-    def call(self, path, data=None, headers=None):
-        address = f'127.0.0.1:{self.server.server_port}'
-        request = Request(f'http://{address}{path}', data=data, headers=headers or {})
+    def call(self, path, data=None, headers=None, auth=True):
+        request_headers = dict(headers or {})
+        if auth:
+            request_headers['Authorization'] = AUTH
+        request = Request(f'http://127.0.0.1:{self.server.server_port}{path}', data=data, headers=request_headers)
         try:
             with urlopen(request, timeout=10) as response:
-                return response.status, response.read()
+                return response.status, response.read(), response.headers
         except HTTPError as error:
             try:
-                return error.code, error.read()
+                return error.code, error.read(), error.headers
             finally:
                 error.close()
 
-    def test_origin_and_json_guards(self):
-        address = f'127.0.0.1:{self.server.server_port}'
-        self.assertEqual(self.call('/health')[0], 200)
-        self.assertEqual(self.call('/ollama/api/chat', b'{}', {'Origin': 'https://evil.example', 'Content-Type': 'application/json'})[0], 403)
-        self.assertEqual(self.call('/ollama/api/chat', b'{}', {'Origin': f'https://{address}', 'Content-Type': 'text/plain'})[0], 415)
-        self.assertEqual(self.call('/ollama/api/chat', json.dumps({'model': 'wrong'}).encode(), {'Origin': f'https://{address}', 'Content-Type': 'application/json'})[0], 403)
-        self.assertEqual(self.call('/transcribe?lang=fr', b'1234', {'Origin': f'https://{address}'})[0], 400)
+    def post(self, path, payload, extra=None, auth=True):
+        headers = {'Origin': self.origin, 'Content-Type': 'application/json', 'X-Sprigo': '1', **(extra or {})}
+        return self.call(path, json.dumps(payload).encode(), headers, auth)
 
-    def test_large_body_is_rejected_before_read(self):
-        address = f'127.0.0.1:{self.server.server_port}'
-        status, body = self.call('/transcribe', b'x', {'Origin': f'https://{address}', 'Content-Length': str(MAX_BODY + 1)})
+    def test_access_origin_json_and_body_limits(self):
+        self.assertEqual(self.call('/health', auth=False)[0], 200)
+        self.assertEqual(self.call('/web-config')[0], 200)
+        self.assertEqual(self.call('/', auth=False)[0], 401)
+        self.assertEqual(self.post('/ollama/api/chat', {}, auth=False)[0], 401)
+        self.assertEqual(self.post('/ollama/api/chat', {}, {'Origin': 'https://evil.example'})[0], 403)
+        self.assertEqual(self.call('/ollama/api/chat', b'{}', {'Origin': self.origin, 'Content-Type': 'text/plain'})[0], 415)
+        self.assertEqual(self.post('/ollama/api/chat', {'model': 'wrong'})[0], 403)
+        self.assertEqual(self.call('/transcribe?lang=fr', b'1234', {'Origin': self.origin})[0], 400)
+        status, body, _ = self.call('/transcribe', b'x', {'Origin': self.origin, 'Content-Length': str(MAX_BODY + 1)})
         self.assertEqual(status, 400)
         self.assertIn(b'Request body too large', body)
+
+    def test_account_session_and_sql_placeholders(self):
+        status, _, headers = self.post('/account/register', {'username': 'testuser', 'password': 'long-test-password'})
+        self.assertEqual(status, 201)
+        cookie = headers['Set-Cookie'].split(';', 1)[0]
+        self.assertEqual(self.post('/account/sql', {'kind': 'select', 'sql': 'SELECT $1 AS value', 'args': [42]}, {'Cookie': cookie})[:2], (200, b'[{"value": 42}]'))
+        self.assertEqual(self.post('/account/sql', {'kind': 'execute', 'sql': 'CREATE TABLE notes(message TEXT)', 'args': [], 'revision': 0}, {'Cookie': cookie})[0], 200)
+        self.assertEqual(self.post('/account/sql', {'kind': 'execute', 'sql': 'INSERT INTO notes(message) VALUES ($1)', 'args': ['lost'], 'revision': 0}, {'Cookie': cookie})[0], 409)
+        self.assertEqual(self.post('/account/logout', {}, {'Cookie': cookie})[0], 200)
+        self.assertEqual(self.post('/account/sql', {'kind': 'select', 'sql': 'SELECT 1', 'args': []}, {'Cookie': cookie})[0], 401)
+        self.assertEqual(self.post('/account/login', {'username': 'testuser', 'password': ''})[0], 401)
 
 
 if __name__ == '__main__':

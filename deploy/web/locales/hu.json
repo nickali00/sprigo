@@ -1,0 +1,22 @@
+{
+  "login": "Bejelentkezés megosztott fiókba",
+  "create": "Megosztott fiók létrehozása",
+  "description": "Használd ugyanazokat a profilokat és haladást telefonon és számítógépen.",
+  "username": "Felhasználónév",
+  "password": "Jelszó",
+  "copyLocal": "Másold át a profilokat és a haladást erről az eszközről az új fiókba. A helyi másolat ezen az eszközön marad.",
+  "haveAccount": "Már van fiókom",
+  "newAccount": "Új fiók létrehozása",
+  "useLocal": "Profilok használata csak ezen az eszközön",
+  "useShared": "Folytatás a többi eszközömön",
+  "signOut": "Kijelentkezés a megosztott fiókból",
+  "localTitle": "Profilok ezen az eszközön",
+  "localDesc": "A haladás ebben a böngészőben marad.",
+  "sharedTitle": "Megosztott fiók",
+  "sharedDesc": "{{name}} néven jelentkeztél be. A haladás a szervereden tárolódik, és a többi eszközödön is elérhető.",
+  "usernameHint": "3–32 betű, szám, pont, kötőjel vagy aláhúzás.",
+  "passwordHint": "Legalább 8 karakter. A többi eszközön is szükséged lesz rá.",
+  "confirmPassword": "Jelszó megerősítése",
+  "passwordMismatch": "A jelszavak nem egyeznek.",
+  "loginPasswordHint": "Add meg a fiókod jelszavát."
+}

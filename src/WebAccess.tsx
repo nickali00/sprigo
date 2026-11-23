@@ -60,7 +60,6 @@ function AccountGate() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordless, setPasswordless] = useState(false);
   const [copy, setCopy] = useState(true);
   const [local, setLocal] = useState<ArrayBuffer | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,10 +69,10 @@ function AccountGate() {
     event.preventDefault();
     if (busy) return;
     setBusy(true); setError("");
-    if (create && !passwordless && password !== confirmPassword) { setError(t("webAccount.passwordMismatch")); setBusy(false); return; }
+    if (create && password !== confirmPassword) { setError(t("webAccount.passwordMismatch")); setBusy(false); return; }
     try {
       await post(create ? "register" : "login", {
-        username, password: create && passwordless ? "" : password, ...(create && copy && local ? { localDb: base64(local) } : {}),
+        username, password, ...(create && copy && local ? { localDb: base64(local) } : {}),
       });
       location.reload();
     } catch (e) { setError((e as Error).message); setBusy(false); }
@@ -89,17 +88,12 @@ function AccountGate() {
             <input className="input" autoComplete="username" required minLength={3} maxLength={32} pattern="[A-Za-z0-9_.-]{3,32}" value={username} onChange={(e) => setUsername(e.target.value)} />
             {create && <span className="muted small">{t("webAccount.usernameHint")}</span>}
           </label>
-          {create && <label className="od-row" style={{ gap: 8, alignItems: "flex-start" }}>
-            <input type="checkbox" checked={passwordless} onChange={(e) => setPasswordless(e.target.checked)} />
-            <span className="od-field"><b>{t("webAccount.passwordless")}</b>
-              <span className="muted small">{t("webAccount.passwordlessHint")}</span></span>
-          </label>}
-          {(!create || !passwordless) && <label className="od-field"><b>{t("webAccount.password")}</b>
-            <input className="input" type="password" autoComplete={create ? "new-password" : "current-password"} required={create} minLength={create ? 4 : 0} maxLength={128} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <label className="od-field"><b>{t("webAccount.password")}</b>
+            <input className="input" type="password" autoComplete={create ? "new-password" : "current-password"} required minLength={create ? 8 : 1} maxLength={128} value={password} onChange={(e) => setPassword(e.target.value)} />
             <span className="muted small">{t(create ? "webAccount.passwordHint" : "webAccount.loginPasswordHint")}</span>
-          </label>}
-          {create && !passwordless && <label className="od-field"><b>{t("webAccount.confirmPassword")}</b>
-            <input className="input" type="password" autoComplete="new-password" required minLength={4} maxLength={128} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          </label>
+          {create && <label className="od-field"><b>{t("webAccount.confirmPassword")}</b>
+            <input className="input" type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
           </label>}
           {create && local && <label className="od-row" style={{ gap: 8, alignItems: "flex-start" }}>
             <input type="checkbox" checked={copy} onChange={(e) => setCopy(e.target.checked)} />
@@ -143,7 +137,7 @@ export function WebAccessGate({ children }: { children: ReactNode }) {
   if (checking) return null;
   const value = {
     mode: webMode, account,
-    useLocal: () => choose("local"), useAccount: () => choose("account"),
+    useLocal: () => { void post("logout", {}).then(() => choose("local")).catch((error) => window.alert((error as Error).message)); }, useAccount: () => choose("account"),
     signOut: async () => { await post("logout", {}); location.reload(); },
   };
   return <C.Provider value={value}>{isWeb && webMode === "account" && !account ? <AccountGate /> : children}</C.Provider>;

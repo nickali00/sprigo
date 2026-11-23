@@ -9,6 +9,8 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    env:
+      SPRIGO_ACCESS_PASSWORD: test-only-ci-secret-123456789
     steps:
       - uses: actions/checkout@v7
       - name: Check Compose configuration

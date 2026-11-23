@@ -1,5 +1,5 @@
 // Local multi-profile (DECISIONS E4–E5). Not in the design: built from its cards, avatars and sheet.
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../icons";
 import { useApp } from "../store";
@@ -7,7 +7,8 @@ import { languages } from "../i18n";
 import * as db from "../db";
 import type { Profile } from "../db";
 import { levelRange, type Course } from "../course";
-import { WebAccountControls } from "../WebAccess";
+
+const WebAccountControls = lazy(() => import("../WebAccess").then((module) => ({ default: module.WebAccountControls })));
 
 const COLORS = ["#12b886", "#4c6ef5", "#b07cf0", "#f4862a", "#e91e63", "#00b8a9", "#f5b014", "#5c6bc0"];
 // ponytail: fixed list of native languages the AI can translate into; extend when someone asks.
@@ -196,7 +197,7 @@ export function ProfileGate() {
           <button className="btn btn-ghost btn-block" onClick={() => setCreating(true)}>+ {t("profiles.add")}</button>
         </div>
       )}
-      <WebAccountControls />
+      {db.isWeb && <Suspense fallback={null}><WebAccountControls /></Suspense>}
     </main>
   );
 }

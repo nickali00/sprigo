@@ -1,0 +1,22 @@
+{
+  "login": "Accedi a un account condiviso",
+  "create": "Crea un account condiviso",
+  "description": "Usa gli stessi profili e progressi su telefono e computer.",
+  "username": "Nome utente",
+  "password": "Password",
+  "copyLocal": "Copia i profili e i progressi di questo dispositivo nel nuovo account. La copia locale resta qui.",
+  "haveAccount": "Ho già un account",
+  "newAccount": "Crea un nuovo account",
+  "useLocal": "Usa i profili solo su questo dispositivo",
+  "useShared": "Continua sugli altri dispositivi",
+  "signOut": "Esci dall’account condiviso",
+  "localTitle": "Profili su questo dispositivo",
+  "localDesc": "I progressi restano in questo browser.",
+  "sharedTitle": "Account condiviso",
+  "sharedDesc": "Accesso come {{name}}. I progressi sono salvati sul tuo server e disponibili sugli altri dispositivi.",
+  "usernameHint": "Da 3 a 32 caratteri: lettere, numeri, punti, trattini o trattini bassi.",
+  "passwordHint": "Almeno 8 caratteri. Ti servirà sugli altri dispositivi.",
+  "confirmPassword": "Conferma password",
+  "passwordMismatch": "Le password non coincidono.",
+  "loginPasswordHint": "Inserisci la password del tuo account."
+}

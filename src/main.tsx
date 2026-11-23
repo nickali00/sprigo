@@ -11,22 +11,22 @@ import "@fontsource/atkinson-hyperlegible-next/600.css";
 import "@fontsource/atkinson-hyperlegible-next/700.css";
 import "@fontsource/atkinson-hyperlegible-next/800.css";
 import "./styles.css";
-import "./i18n";
+import i18n from "./i18n";
 import "./theme";
 import { AppProvider } from "./store";
 import App from "./App";
-import { WebAccessGate } from "./WebAccess";
 import { isCompanion, isWeb } from "./db";
 import { registerOfflinePage } from "./companion";
 
 if (isCompanion && !isWeb) registerOfflinePage();
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <WebAccessGate>
-      <AppProvider>
-        <App />
-      </AppProvider>
-    </WebAccessGate>
-  </React.StrictMode>,
-);
+const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
+const app = <AppProvider><App /></AppProvider>;
+if (isWeb) {
+  void Promise.all([import("./WebAccess"), import("./webAccountLocales")]).then(([{ WebAccessGate }, { installWebAccountLocales }]) => {
+    installWebAccountLocales(i18n);
+    root.render(<React.StrictMode><WebAccessGate>{app}</WebAccessGate></React.StrictMode>);
+  });
+} else {
+  root.render(<React.StrictMode>{app}</React.StrictMode>);
+}

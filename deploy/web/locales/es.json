@@ -1,0 +1,22 @@
+{
+  "login": "Iniciar sesión en una cuenta compartida",
+  "create": "Crear una cuenta compartida",
+  "description": "Utiliza los mismos perfiles y progreso en tu teléfono y computadora.",
+  "username": "Nombre de usuario",
+  "password": "Contraseña",
+  "copyLocal": "Copia los perfiles y el progreso desde este dispositivo a la nueva cuenta. La copia local permanece en este dispositivo.",
+  "haveAccount": "Ya tengo una cuenta",
+  "newAccount": "Crear una nueva cuenta",
+  "useLocal": "Usar solo los perfiles de este dispositivo",
+  "useShared": "Continuar en mis otros dispositivos",
+  "signOut": "Cerrar sesión en la cuenta compartida",
+  "localTitle": "Perfiles en este dispositivo",
+  "localDesc": "El progreso aquí se mantiene en este navegador.",
+  "sharedTitle": "Cuenta compartida",
+  "sharedDesc": "Sesión iniciada como {{name}}. El progreso se guarda en tu servidor y está disponible en tus otros dispositivos.",
+  "usernameHint": "De 3 a 32 caracteres: letras, números, puntos, guiones o guiones bajos.",
+  "passwordHint": "Al menos 8 caracteres. La necesitarás en otros dispositivos.",
+  "confirmPassword": "Confirmar contraseña",
+  "passwordMismatch": "Las contraseñas no coinciden.",
+  "loginPasswordHint": "Introduce la contraseña de tu cuenta."
+}

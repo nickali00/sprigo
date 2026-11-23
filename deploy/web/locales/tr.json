@@ -1,0 +1,22 @@
+{
+  "login": "Paylaşılan hesaba giriş yap",
+  "create": "Paylaşılan hesap oluştur",
+  "description": "Telefonunda ve bilgisayarında aynı profilleri ve ilerlemeyi kullan.",
+  "username": "Kullanıcı adı",
+  "password": "Şifre",
+  "copyLocal": "Bu cihazdaki profilleri ve ilerlemeyi yeni hesaba kopyala. Yerel kopya bu cihazda kalır.",
+  "haveAccount": "Zaten bir hesabım var",
+  "newAccount": "Yeni hesap oluştur",
+  "useLocal": "Profilleri yalnızca bu cihazda kullan",
+  "useShared": "Diğer cihazlarımda devam et",
+  "signOut": "Paylaşılan hesaptan çıkış yap",
+  "localTitle": "Bu cihazdaki profiller",
+  "localDesc": "Buradaki ilerleme bu tarayıcıda kalır.",
+  "sharedTitle": "Paylaşılan hesap",
+  "sharedDesc": "{{name}} olarak giriş yapıldı. İlerlemen sunucunda kaydedilir ve diğer cihazlarında kullanılabilir.",
+  "usernameHint": "3–32 harf, rakam, nokta, kısa çizgi veya alt çizgi.",
+  "passwordHint": "En az 8 karakter. Diğer cihazlarda da gerekecek.",
+  "confirmPassword": "Şifreyi doğrula",
+  "passwordMismatch": "Şifreler eşleşmiyor.",
+  "loginPasswordHint": "Hesap şifreni gir."
+}

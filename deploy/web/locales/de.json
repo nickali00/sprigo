@@ -1,0 +1,22 @@
+{
+  "login": "Einloggen",
+  "create": "Neuen Account erstellen",
+  "description": "Verwende dieselben Profile und Fortschritte auf deinem Handy und Computer.",
+  "username": "Benutzername",
+  "password": "Passwort",
+  "copyLocal": "Kopiere die Profile und den Fortschritt von diesem Gerät in den neuen Account. Die lokale Kopie bleibt auf diesem Gerät.",
+  "haveAccount": "Ich habe bereits einen Account",
+  "newAccount": "Neuen Account erstellen",
+  "useLocal": "Nur dieses Gerät verwenden",
+  "useShared": "Auf anderen Geräten fortfahren",
+  "signOut": "Aus dem gemeinsamen Account ausloggen",
+  "localTitle": "Profile auf diesem Gerät",
+  "localDesc": "Der Fortschritt bleibt in diesem Browser.",
+  "sharedTitle": "Gemeinsamer Account",
+  "sharedDesc": "Angemeldet als {{name}}. Der Fortschritt wird auf dem Server gespeichert und ist auf anderen Geräten verfügbar.",
+  "usernameHint": "3–32 Zeichen: Buchstaben, Zahlen, Punkte, Bindestriche oder Unterstriche.",
+  "passwordHint": "Mindestens 8 Zeichen. Du brauchst das Passwort auf anderen Geräten.",
+  "confirmPassword": "Passwort bestätigen",
+  "passwordMismatch": "Die Passwörter stimmen nicht überein.",
+  "loginPasswordHint": "Gib dein Kontopasswort ein."
+}
