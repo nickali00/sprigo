@@ -70,7 +70,7 @@
     "legendDone": "Hai padroneggiato questa lezione. Riprova la sfida o rivedila.",
     "guideWords": "Vocabolario",
     "guideGrammar": "Grammatica",
-    "guideNoAi": "Configura un provider AI nelle Impostazioni per ottenere traduzioni, esempi e spiegazioni.",
+    "guideNoAi": "Configura un fornitore AI nelle Impostazioni per ottenere traduzioni, esempi e spiegazioni.",
     "guideLoading": "Sto scrivendo il tuo libro di guida…",
     "guideLoadingDesc": "L'AI sta aggiungendo traduzioni, esempi e note grammaticali. Ci vogliono pochi secondi, solo la prima volta.",
     "legendTicket_one": "{{count}} biglietto",
@@ -99,7 +99,7 @@
     "needAnalysisStructure": "Verificare se hai provato il modello richiede l'analisi vocale.",
     "needAnalysisPlanning": "Ridurre il tempo di pianificazione nelle sessioni richiede l'analisi vocale.",
     "namedStructure": "Questa volta, prova a usare {{structure}}",
-    "needAnalysis": "Confrontare le round richiede l'analisi vocale.",
+    "needAnalysis": "Confrontare i giri richiede l'analisi vocale.",
     "enableAndStart": "Attiva e avvia",
     "drillTopic": "Argomento",
     "drillTopicPlaceholder": "es. le mie ultime vacanze",
@@ -141,7 +141,7 @@
     "needWords_many": "Impara almeno {{count}} parole nelle lezioni prima",
     "needWords_other": "Impara almeno {{count}} parole nelle lezioni prima",
     "noWords": "Qui appaiono le parole che impari nelle lezioni.",
-    "madnessDesc": "Abbinare il più numero di coppie possibile in 90 secondi",
+    "madnessDesc": "Abbina il maggior numero di coppie possibile in 90 secondi",
     "timed": "Sfida a tempo",
     "timedDesc": "Domande miste dalle tue lezioni — 2 minuti",
     "needLesson": "Completa prima una lezione",
@@ -182,7 +182,7 @@
     "promoted": "Sei passato alla Lega {{name}}!",
     "demoted": "Sei sceso nella Lega {{name}}. Riprendila questa settimana!",
     "tier0": "Seme",
-    "tier1": "Germe",
+    "tier1": "Germoglio",
     "tier2": "Pianticella",
     "tier3": "Foglia",
     "tier4": "Fiore",
@@ -206,7 +206,7 @@
     "legendaryDesc": "Un tentativo di padronanza, pronto quando vuoi.",
     "bought": "Acquistato: {{name}}",
     "notEnough": "Monete insufficienti",
-    "doubleXpActive_one": "2× XP · {{count}} min rimanenti",
+    "doubleXpActive_one": "2× XP · {{count}} min rimasti",
     "doubleXpActive_many": "2× XP · {{count}} min rimasti",
     "doubleXpActive_other": "2× XP · {{count}} min rimasti"
   },
@@ -221,7 +221,7 @@
     "accSummary": "Risposte corrette, tutti i tempi",
     "accRow": "{{pct}}% di risposte corrette su {{n}} totali",
     "speechTitle": "Velocità di parlato",
-    "speechSummary": "{{n}} parole al minuto in media, ultimi 8 settimane",
+    "speechSummary": "{{n}} parole al minuto in media, nelle ultime 8 settimane",
     "wpm": "ppm",
     "none": "Niente ancora",
     "kinds": {
@@ -345,7 +345,7 @@
   },
   "stories": {
     "title": "Storie",
-    "subtitle": "Brevi dialoghi scritti dall'IA per ogni unità. Tocca una riga per ascoltarla e vedere la traduzione.",
+    "subtitle": "Brevi dialoghi scritti dall'AI per ogni unità. Tocca una riga per ascoltarla e vedere la traduzione.",
     "read": "Leggi",
     "lockedToast": "Inizia prima l'unità {{unit}}",
     "again": "Rileggi",
@@ -454,7 +454,7 @@
     "briefWhoPlaceholder": "es. il mio proprietario",
     "briefAbout": "Di cosa?",
     "briefAboutPlaceholder": "es. la caldaia che non è ancora stata riparata",
-    "briefFormality": "Come vi parlate voi due?",
+    "briefFormality": "Come vi rivolgete l'uno all'altro?",
     "formalityCasual": "Informale",
     "formalityNeutral": "Neutrale",
     "formalityFormal": "Formale",
@@ -479,7 +479,7 @@
     "streakSafeDesc_many": "{{count}} giorni di radici in crescita. Ci vediamo domani!",
     "streakSafeDesc_other": "{{count}} giorni di radici in crescita. Ci vediamo domani!",
     "streakRisk": "Le tue radici stanno seccando!",
-    "streakRiskDesc_one": "Non hai praticato oggi. Completa una lezione per mantenere vive le tue {{count}} giornata di radici.",
+    "streakRiskDesc_one": "Non hai praticato oggi. Completa una lezione per mantenere viva la tua {{count}} giornata di radici.",
     "streakRiskDesc_many": "Non hai praticato oggi. Completa una lezione per mantenere vive le tue {{count}} giornate di radici.",
     "streakRiskDesc_other": "Non hai praticato oggi. Completa una lezione per mantenere vive le tue {{count}} giornate di radici.",
     "streakStart": "Inizia a far crescere radici oggi",
@@ -491,7 +491,7 @@
     "passed": "{{name}} è davanti a te",
     "passedDesc": "{{name}} ha guadagnato più XP questa settimana. Riprendila!",
     "chest": "Hai un cesto del raccolto non aperto",
-    "chestDesc": "Aprilo sul percorso Apprendi."
+    "chestDesc": "Aprilo sul percorso Impara."
   },
   "settings": {
     "title": "Impostazioni",
@@ -502,7 +502,7 @@
     "speaking": "Esercizi di parlato",
     "speakingDesc": "Esercizi che usano il microfono",
     "bargeIn": "Interrompi il tutor",
-    "bargeInDesc": "Parla sopra il tutor durante una lezione in diretta per interrompere. Disattiva se il tutor si ferma da solo perché il microfono sente gli altri.",
+    "bargeInDesc": "Parla sopra il tutor durante una lezione in diretta per interrompere. Disattiva se il tutor si ferma da solo perché il microfono sente gli altoparlanti.",
     "memory": "Ricordati di me",
     "memoryDesc": "Sprigo ricorda le informazioni che racconti al tutor (interessi, progetti, difficoltà) e le usa nelle lezioni. Nessun dato lascia questo dispositivo, a meno che tu non scelga un fornitore AI cloud.",
     "speech": "Analisi vocale",
@@ -524,7 +524,7 @@
     "phoneApproveDesc": "La tua rete tailnet non ha ancora consentito la condivisione. Consentilo sulla pagina che si apre, poi riattiva questa opzione.",
     "phoneApproveOpen": "Apri Tailscale",
     "reminder": "Promemoria",
-    "reminderDesc": "Sprigo ti ricorda alcune volte al giorno e tace una volta che hai praticato. Mentre è attivo, rimane in background.",
+    "reminderDesc": "Sprigo ti ricorda alcune volte al giorno e tace appena hai praticato. Mentre è attivo, rimane in background.",
     "reduceMotion": "Riduci le animazioni",
     "reduceMotionDesc": "Mantieni le animazioni al minimo",
     "textSize": "Dimensione del testo",
@@ -646,8 +646,8 @@
     "appeal": "Ricorso",
     "appealTitle": "Perché la tua risposta è corretta?",
     "appealSend": "Invia",
-    "appealFailed": "Non è stato possibile riesaminare la tua richiesta. Riprova.",
-    "appealRejected": "Richiesta respinta: {{reason}}",
+    "appealFailed": "Non è stato possibile esaminare il tuo ricorso. Riprova.",
+    "appealRejected": "Ricorso respinto: {{reason}}",
     "checkFailed": "Non è stato possibile verificare la tua risposta. Riprova.",
     "examPassed": "{{level}} completato!",
     "examFailed": "Quasi ci sei arrivato",
@@ -714,7 +714,7 @@
     "connectFailed": "Impossibile connettersi",
     "saved": "Fornitore AI salvato",
     "needed": "Configura un fornitore AI",
-    "neededDesc": "Le lezioni sono scritte da un modello AI. Connetti Ollama, LM Studio o un provider cloud per iniziare.",
+    "neededDesc": "Le lezioni sono scritte da un modello AI. Connetti Ollama, LM Studio o un fornitore cloud per iniziare.",
     "setUp": "Configura",
     "preparing": "Preparazione della tua lezione…",
     "failed": "La lezione non è stata generata",
@@ -731,13 +731,13 @@
     "noModels": "Ollama è in esecuzione ma non ha ancora modelli",
     "pullDesc": "Scarica {{model}} ({{size}}). Funziona in locale, gratis e offline.",
     "pull": "Scarica {{model}}",
-    "pulling": "Download in corso… {{pct}}%",
+    "pulling": "Scaricamento… {{pct}}%",
     "noLocal": "Nessun modello locale trovato",
-    "noLocalDesc": "Installa l'app gratuita Ollama, aprila e controlla di nuovo. Oppure scegli un provider cloud sopra.",
+    "noLocalDesc": "Installa l'app gratuita Ollama, aprila e controlla di nuovo. Oppure scegli un fornitore cloud sopra.",
     "getOllama": "Ottieni Ollama",
     "rescan": "Controlla di nuovo",
     "ollamaGood": "Gratis e in esecuzione in locale; la velocità dipende dal computer.",
-    "ollamaInfo": "Esegue modelli in locale, quindi le tue lezioni restano sulla tua rete. Ollama deve essere installato e avviato; funzionano anche i suoi modelli cloud (nomi che terminano con :cloud).",
+    "ollamaInfo": "Esegue modelli in locale, quindi le tue lezioni restano offline e private. Ollama deve essere installato e avviato; funzionano anche i suoi modelli cloud (nomi che terminano con :cloud).",
     "lmstudioGood": "Gratuito e locale; gestisci i modelli in un'app visiva.",
     "lmstudioInfo": "Si connette al server locale di LM Studio. Carica un modello in LM Studio e avvia il suo server prima.",
     "openaiGood": "Modelli cloud veloci e capaci; richiede una chiave API a pagamento.",
@@ -979,9 +979,9 @@
     "open": "Apri il tuo giardino",
     "close": "Chiudi il giardino",
     "stage0": "Seme",
-    "stage1": "Germinazione",
-    "stage2": "Giovane albero",
-    "stage3": "Albero giovane",
+    "stage1": "Germoglio",
+    "stage2": "Pianticella",
+    "stage3": "Alberello",
     "stage4": "Albero adulto",
     "next_one": "{{count}} lezione in più per {{stage}}",
     "next_many": "{{count}} lezioni in più per {{stage}}",
@@ -1042,8 +1042,8 @@
     "wiki": "Wiki",
     "topics": {
       "ai": {
-        "q": "Come configuro l'IA?",
-        "a": "Sprigo ha bisogno di un modello linguistico per scrivere le lezioni. Il più semplice è Ollama: installalo e apri Sprigo; troverà Ollama e offrirà di scaricare qwen3:8b (circa 5,2 GB). Funziona anche LM Studio: avvia il suo server locale e carica un modello.\nNessun modello locale? Usa un provider cloud (OpenAI, Anthropic, Gemini, OpenRouter) con la tua chiave API. Le chiavi rimangono nel portachiavi del sistema.\nCambiare in Impostazioni → AI & voce → Fornitore AI."
+        "q": "Come configuro l'AI?",
+        "a": "Sprigo ha bisogno di un modello linguistico per scrivere le lezioni. Il più semplice è Ollama: installalo e apri Sprigo; troverà Ollama e offrirà di scaricare qwen3:8b (circa 5,2 GB). Funziona anche LM Studio: avvia il suo server locale e carica un modello.\nNessun modello locale? Usa un fornitore cloud (OpenAI, Anthropic, Gemini, OpenRouter) con la tua chiave API. Le chiavi rimangono nel portachiavi del sistema.\nCambialo in Impostazioni → AI e voce → Fornitore AI."
       },
       "aiConnect": {
         "q": "\"Nessun modello locale trovato\" o \"Impossibile connettersi\"",
@@ -1051,7 +1051,7 @@
       },
       "weak": {
         "q": "Perché le lezioni sono a volte deboli o sbagliate?",
-        "a": "Di solito il modello è troppo piccolo. Usa uno con 8 miliardi di parametri o più (16 GB di memoria sono un buon inizio). Se un esercizio è sbagliato, appellatene nella lezione.\nLe lezioni vengono generate una volta sola e memorizzate in cache, quindi un modello lento influisce principalmente sulla prima visita a un passaggio."
+        "a": "Di solito il modello è troppo piccolo. Usa uno con 8 miliardi di parametri o più (16 GB di memoria sono un buon inizio). Se un esercizio è sbagliato, fai ricorso nella lezione.\nLe lezioni vengono generate una volta sola e memorizzate in cache, quindi un modello lento influisce principalmente sulla prima visita a un passaggio."
       },
       "mic": {
         "q": "Sprigo non mi sente",
@@ -1063,7 +1063,7 @@
       },
       "phone": {
         "q": "Posso usare Sprigo sul telefono?",
-        "a": "Sì, tramite Tailscale: Impostazioni → Privacy e dati → Usa sul telefono. Il telefono utilizza i dati, il riconoscimento vocale e il modello locale del computer desktop, quindi il desktop deve essere acceso. I provider di AI cloud non funzionano lì, perché le chiavi rimangono sul desktop.\nSu iPhone, disattiva la modalità silenziosa per sentire il tutor."
+        "a": "Sì, tramite Tailscale: Impostazioni → Privacy e dati → Usa sul telefono. Il telefono utilizza i dati, il riconoscimento vocale e il modello locale del computer desktop, quindi il desktop deve essere acceso. I fornitori di AI cloud non funzionano lì, perché le chiavi rimangono sul desktop.\nSu iPhone, disattiva la modalità silenziosa per sentire il tutor."
       },
       "data": {
         "q": "Dove sono i miei dati?",
@@ -1084,7 +1084,7 @@
     "from": "Insegnato in {{level}} · {{unit}}",
     "explain": "Spiega questo",
     "explaining": "Scrittura della spiegazione…",
-    "failed": "La spiegazione non è potuta essere scritta.",
+    "failed": "Non è stato possibile scrivere la spiegazione.",
     "notInGuide": "La guida dell'AI ha lasciato fuori questo pattern. Riprova.",
     "alsoIn": "Anche in: {{units}}",
     "practise": "Esercita questo"
