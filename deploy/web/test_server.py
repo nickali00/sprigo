@@ -1,5 +1,6 @@
 """Request guard checks for the experimental web server."""
 import json
+import socket
 import sys
 import threading
 import unittest
@@ -44,6 +45,37 @@ class ServerTests(unittest.TestCase):
         status, body = self.call('/transcribe', b'x', {'Origin': f'https://{address}', 'Content-Length': str(MAX_BODY + 1)})
         self.assertEqual(status, 400)
         self.assertIn(b'Request body too large', body)
+
+    def test_slow_tls_handshake_does_not_block_accept_loop(self):
+        started = threading.Event()
+        release = threading.Event()
+
+        class PausingTls:
+            calls = 0
+            lock = threading.Lock()
+
+            def wrap_socket(self, connection, server_side):
+                with self.lock:
+                    self.calls += 1
+                    first = self.calls == 1
+                if first:
+                    started.set()
+                    release.wait(2)
+                return connection
+
+        server = LimitedServer(('127.0.0.1', 0), App, PausingTls())
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        slow = socket.create_connection(('127.0.0.1', server.server_port))
+        try:
+            self.assertTrue(started.wait(1))
+            with urlopen(f'http://127.0.0.1:{server.server_port}/health', timeout=1) as response:
+                self.assertEqual(response.status, 200)
+        finally:
+            release.set()
+            slow.close()
+            server.shutdown()
+            server.server_close()
 
 
 if __name__ == '__main__':

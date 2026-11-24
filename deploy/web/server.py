@@ -169,23 +169,13 @@ class LimitedServer(ThreadingHTTPServer):
         self.slots = threading.BoundedSemaphore(8)
         super().__init__(address, handler)
 
-    def get_request(self):
-        connection, address = super().get_request()
-        connection.settimeout(10)
-        if self.tls:
-            try:
-                connection = self.tls.wrap_socket(connection, server_side=True)
-            except OSError:
-                connection.close()
-                raise
-        return connection, address
-
     def process_request(self, request, client_address):
         if not self.slots.acquire(blocking=False):
-            try:
-                request.sendall(b'HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
-            except OSError:
-                pass
+            if not self.tls:
+                try:
+                    request.sendall(b'HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
+                except OSError:
+                    pass
             self.shutdown_request(request)
             return
         try:
@@ -196,6 +186,13 @@ class LimitedServer(ThreadingHTTPServer):
 
     def process_request_thread(self, request, client_address):
         try:
+            if self.tls:
+                try:
+                    request.settimeout(3)
+                    request = self.tls.wrap_socket(request, server_side=True)
+                except OSError:
+                    self.shutdown_request(request)
+                    return
             super().process_request_thread(request, client_address)
         finally:
             self.slots.release()

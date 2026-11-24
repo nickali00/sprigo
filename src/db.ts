@@ -63,9 +63,16 @@ function db() {
     const d = await (isTauri ? openTauriDb() : (import.meta.env.DEV || isWeb) ? browserDb() : Promise.reject(new Error("Sprigo needs the Tauri shell")));
     await runMigrations(d, MIGRATIONS, isTauri ? (v) => snapshot(d, `pre-v${v}-${Date.now()}.db`).then(() => {}) : undefined);
     if (isWeb) {
-      const response = await fetch("/web-config", { cache: "no-store" });
-      if (!response.ok) throw new Error("Could not load the web server configuration");
-      const { model } = await response.json();
+      let model = "qwen3:8b";
+      try {
+        const response = await fetch("/web-config", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const config = await response.json();
+        if (typeof config.model !== "string" || !config.model.trim()) throw new Error("Missing model");
+        model = config.model;
+      } catch (error) {
+        console.warn("Could not load the web server configuration; using the default model", error);
+      }
       const ai = JSON.stringify({ provider: "ollama", baseURL: `${location.origin}/ollama`, model });
       await d.execute("INSERT INTO device_settings(key, value) VALUES ($1, $2) ON CONFLICT(key) DO UPDATE SET value = $2 WHERE device_settings.value IS NOT $2", ["ai", ai]);
     }
