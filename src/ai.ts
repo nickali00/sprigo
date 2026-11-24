@@ -7,7 +7,7 @@ import { createGoogle } from "@ai-sdk/google";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { invoke } from "@tauri-apps/api/core";
 import { z } from "zod";
-import { isTauri, isCompanion, addAiUsage, getSetting, setSetting } from "./db";
+import { isTauri, isCompanion, isWeb, addAiUsage, getSetting, setSetting } from "./db";
 import { retry, withBackup } from "./retry";
 import type { AiFeature } from "./usage";
 
@@ -26,28 +26,35 @@ export type AiConfig = { provider: ProviderId; baseURL: string; model: string };
 const http = (isTauri ? tauriFetch : window.fetch.bind(window)) as typeof fetch;
 const trim = (u: string) => u.replace(/\/+$/, "");
 // The saved config is the desktop's (shared database), so on the phone its localhost address means the proxy.
-const baseOf = (c: AiConfig) => trim(isCompanion && c.provider === "ollama" ? PROVIDERS.ollama.baseURL : c.baseURL || PROVIDERS[c.provider].baseURL);
+const baseOf = (c: AiConfig) => trim((isWeb || isCompanion) && c.provider === "ollama" ? PROVIDERS.ollama.baseURL : c.baseURL || PROVIDERS[c.provider].baseURL);
+const webAllowed = (c: AiConfig) => {
+  if (isWeb && c.provider !== "ollama") throw new Error("Only the configured Ollama provider is available in the browser edition");
+};
 
 export async function loadAiConfig(): Promise<AiConfig | null> {
   const v = await getSetting("ai");
-  return v ? JSON.parse(v) : null;
+  const cfg: AiConfig | null = v ? JSON.parse(v) : null;
+  return cfg && isWeb && cfg.provider !== "ollama" ? null : cfg;
 }
-export const saveAiConfig = (c: AiConfig) => setSetting("ai", JSON.stringify(c));
+export const saveAiConfig = (c: AiConfig) => { webAllowed(c); return setSetting("ai", JSON.stringify(c)); };
 /** Backup provider (#36): asked when the main one fails. Only one the learner set up, never chosen for them (privacy). */
 export async function loadAiBackup(): Promise<AiConfig | null> {
   const v = await getSetting("ai.backup");
-  return v ? JSON.parse(v) : null;
+  const cfg: AiConfig | null = v ? JSON.parse(v) : null;
+  return cfg && isWeb && cfg.provider !== "ollama" ? null : cfg;
 }
-export const saveAiBackup = (c: AiConfig | null) => setSetting("ai.backup", c && JSON.stringify(c));
+export const saveAiBackup = (c: AiConfig | null) => { if (c) webAllowed(c); return setSetting("ai.backup", c && JSON.stringify(c)); };
 
 // ---- API keys ----
 // ponytail: the dev browser preview has no keychain, so it keeps keys in localStorage. Never used in the app.
 const DEV_KEY = (p: ProviderId) => `sprigo.devkey.${p}`;
 export async function getKey(p: ProviderId): Promise<string | null> {
+  if (isWeb) return null;
   if (!PROVIDERS[p].needsKey) return null;
   return isTauri ? invoke<string | null>("secret_get", { key: `api-key.${p}` }) : localStorage.getItem(DEV_KEY(p));
 }
 export async function setKey(p: ProviderId, value: string | null) {
+  if (isWeb && value) throw new Error("Cloud provider keys are disabled in the browser edition");
   if (isTauri) return invoke("secret_set", { key: `api-key.${p}`, value });
   value ? localStorage.setItem(DEV_KEY(p), value) : localStorage.removeItem(DEV_KEY(p));
 }
@@ -69,6 +76,7 @@ const openrouterFetch: typeof fetch = async (url, init) => {
 };
 
 function model(c: AiConfig, key: string | null): LanguageModel {
+  webAllowed(c);
   const baseURL = baseOf(c);
   const apiKey = key ?? "";
   switch (c.provider) {
@@ -85,6 +93,7 @@ function model(c: AiConfig, key: string | null): LanguageModel {
 
 /** Model ids offered by the provider; throws with the server's message when unreachable/unauthorized. */
 export async function listModels(c: AiConfig, key: string | null): Promise<string[]> {
+  webAllowed(c);
   const base = baseOf(c);
   const get = async (url: string, headers: Record<string, string> = {}) => {
     const r = await http(url, { headers });
@@ -131,6 +140,8 @@ export function warmUp() {
   http(`${base}/api/generate`, { method: "POST", body: JSON.stringify({ model: active.cfg.model, keep_alive: "10m" }) }).catch(() => {});
 }
 export async function activateConfig(cfg: AiConfig | null, backupCfg: AiConfig | null = null) {
+  if (cfg) webAllowed(cfg);
+  if (backupCfg) webAllowed(backupCfg);
   active = cfg && { cfg, key: await getKey(cfg.provider) };
   backup = cfg && backupCfg && backupCfg.provider !== cfg.provider ? { cfg: backupCfg, key: await getKey(backupCfg.provider) } : null;
 }

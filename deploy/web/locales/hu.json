@@ -18,5 +18,8 @@
   "passwordHint": "Legalább 8 karakter. A többi eszközön is szükséged lesz rá.",
   "confirmPassword": "Jelszó megerősítése",
   "passwordMismatch": "A jelszavak nem egyeznek.",
-  "loginPasswordHint": "Add meg a fiókod jelszavát."
+  "loginPasswordHint": "Add meg a fiókod jelszavát.",
+  "setupSecret": "Üzemeltetői beállítási titok",
+  "oneDevice": "A haladás biztonsága érdekében egyszerre csak egy eszközt használj.",
+  "staleReload": "A fiókod megváltozott egy másik eszközön. Az oldal újratöltődött; folytatás előtt ellenőrizd a haladásodat."
 }

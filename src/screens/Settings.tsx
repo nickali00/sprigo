@@ -259,7 +259,7 @@ export function AiSheet() {
       {ai && <p className="muted small">{t("ai.backupDesc")}</p>}
       {!ai && <LocalSetup onPick={(p, models) => setFound({ p, models })} />}
       <div className="od-stack" style={gap("8px")} role="radiogroup" aria-label={t("ai.provider")}>
-        {AI_ROWS.map(({ p, icon, color }) => (
+        {AI_ROWS.filter(({ p }) => !isWeb || p === "ollama").map(({ p, icon, color }) => (
           <div key={p} className={`voice-option${ai?.provider === p ? " on" : ""}`}>
             <button role="radio" aria-checked={ai?.provider === p} onClick={() => ai?.provider !== p && configure(p)}>
               <span className="voice-icon" style={{ color }}><Icon name={icon} /></span>

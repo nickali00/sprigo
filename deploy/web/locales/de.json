@@ -18,5 +18,8 @@
   "passwordHint": "Mindestens 8 Zeichen. Du brauchst das Passwort auf anderen Geräten.",
   "confirmPassword": "Passwort bestätigen",
   "passwordMismatch": "Die Passwörter stimmen nicht überein.",
-  "loginPasswordHint": "Gib dein Kontopasswort ein."
+  "loginPasswordHint": "Gib dein Kontopasswort ein.",
+  "setupSecret": "Einrichtungsschlüssel des Betreibers",
+  "oneDevice": "Am sichersten ist es, jeweils nur ein Gerät zu verwenden.",
+  "staleReload": "Dein Konto wurde auf einem anderen Gerät geändert. Die Seite wurde neu geladen. Prüfe deinen Fortschritt, bevor du fortfährst."
 }

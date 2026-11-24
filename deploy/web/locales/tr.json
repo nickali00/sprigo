@@ -18,5 +18,8 @@
   "passwordHint": "En az 8 karakter. Diğer cihazlarda da gerekecek.",
   "confirmPassword": "Şifreyi doğrula",
   "passwordMismatch": "Şifreler eşleşmiyor.",
-  "loginPasswordHint": "Hesap şifreni gir."
+  "loginPasswordHint": "Hesap şifreni gir.",
+  "setupSecret": "Yönetici kurulum anahtarı",
+  "oneDevice": "İlerlemeni korumak için aynı anda yalnızca bir cihaz kullan.",
+  "staleReload": "Hesabın başka bir cihazda değişti. Sayfa yeniden yüklendi; devam etmeden önce ilerlemeni kontrol et."
 }

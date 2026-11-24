@@ -6,13 +6,17 @@ export const noteSharedRevision = (revision: number) => { seenRevision = Math.ma
 export const seenSharedRevision = () => seenRevision;
 
 export function accountDb(): SqlDb {
+  let writeQueue: Promise<void> = Promise.resolve();
   const post = async <T,>(kind: "select" | "execute", sql: string, args: unknown[] = []): Promise<T> => {
     const response = await fetch("/account/sql", {
       method: "POST", credentials: "same-origin",
       headers: { "Content-Type": "application/json", "X-Sprigo": "1" },
       body: JSON.stringify({ kind, sql, args, ...(kind === "execute" ? { revision: seenRevision } : {}) }),
     });
-    if (response.status === 401 || response.status === 409) { location.reload(); return new Promise<T>(() => {}); }
+    if (response.status === 401 || response.status === 409) {
+      if (response.status === 409) sessionStorage.setItem("sprigo.web.stale", "1");
+      location.reload(); return new Promise<T>(() => {});
+    }
     if (!response.ok) throw new Error((await response.text()).slice(0, 300));
     const answer = await response.json();
     if (kind === "execute") noteSharedRevision(answer.revision);
@@ -20,6 +24,10 @@ export function accountDb(): SqlDb {
   };
   return {
     select: (sql, args) => post("select", sql, args),
-    execute: (sql, args) => post("execute", sql, args),
+    execute: (sql, args) => {
+      const next = writeQueue.then(() => post<{ lastInsertId: number; revision: number }>("execute", sql, args));
+      writeQueue = next.then(() => {}, () => {});
+      return next;
+    },
   };
 }

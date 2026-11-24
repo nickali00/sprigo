@@ -7,6 +7,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -15,14 +16,17 @@ _test_data = tempfile.TemporaryDirectory()
 atexit.register(_test_data.cleanup)
 os.environ['DATA_DIR'] = _test_data.name
 os.environ['SPRIGO_ACCESS_PASSWORD'] = 'test-only-access-password-12345'
+os.environ['SPRIGO_SETUP_SECRET'] = 'test-only-operator-setup-secret-12345'
 sys.modules.setdefault('faster_whisper', SimpleNamespace(WhisperModel=object))
-from server import App, LimitedServer, MAX_BODY  # noqa: E402
+from server import App, LimitedServer, MAX_BODY, ATTEMPTS, ATTEMPTS_LOCK  # noqa: E402
 
 AUTH = 'Basic ' + base64.b64encode(b'sprigo:test-only-access-password-12345').decode()
 
 
 class ServerTests(unittest.TestCase):
     def setUp(self):
+        with ATTEMPTS_LOCK:
+            ATTEMPTS.clear()
         self.server = LimitedServer(('127.0.0.1', 0), App)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -62,7 +66,7 @@ class ServerTests(unittest.TestCase):
         self.assertIn(b'Request body too large', body)
 
     def test_account_session_and_sql_placeholders(self):
-        status, _, headers = self.post('/account/register', {'username': 'testuser', 'password': 'long-test-password'})
+        status, _, headers = self.post('/account/register', {'username': 'testuser', 'password': 'long-test-password', 'setupSecret': os.environ['SPRIGO_SETUP_SECRET']})
         self.assertEqual(status, 201)
         cookie = headers['Set-Cookie'].split(';', 1)[0]
         self.assertEqual(self.post('/account/sql', {'kind': 'select', 'sql': 'SELECT $1 AS value', 'args': [42]}, {'Cookie': cookie})[:2], (200, b'[{"value": 42}]'))
@@ -71,6 +75,18 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(self.post('/account/logout', {}, {'Cookie': cookie})[0], 200)
         self.assertEqual(self.post('/account/sql', {'kind': 'select', 'sql': 'SELECT 1', 'args': []}, {'Cookie': cookie})[0], 401)
         self.assertEqual(self.post('/account/login', {'username': 'testuser', 'password': ''})[0], 401)
+
+    def test_registration_requires_operator_secret(self):
+        payload = {'username': 'newuser', 'password': 'long-test-password'}
+        self.assertEqual(self.post('/account/register', payload)[0], 403)
+        self.assertEqual(self.post('/account/register', {**payload, 'setupSecret': 'wrong'})[0], 403)
+        self.assertEqual(self.post('/account/register', {**payload, 'setupSecret': os.environ['SPRIGO_SETUP_SECRET']})[0], 201)
+
+    def test_registration_disabled_without_setup_secret(self):
+        with patch('server.SETUP_SECRET', ''):
+            self.assertEqual(self.post('/account/register', {
+                'username': 'locked', 'password': 'long-test-password', 'setupSecret': os.environ['SPRIGO_SETUP_SECRET'],
+            })[0], 403)
 
 
 if __name__ == '__main__':

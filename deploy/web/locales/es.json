@@ -18,5 +18,8 @@
   "passwordHint": "Al menos 8 caracteres. La necesitarás en otros dispositivos.",
   "confirmPassword": "Confirmar contraseña",
   "passwordMismatch": "Las contraseñas no coinciden.",
-  "loginPasswordHint": "Introduce la contraseña de tu cuenta."
+  "loginPasswordHint": "Introduce la contraseña de tu cuenta.",
+  "setupSecret": "Clave de configuración del administrador",
+  "oneDevice": "Para mayor seguridad, usa un solo dispositivo a la vez.",
+  "staleReload": "Tu cuenta cambió en otro dispositivo. La página se recargó; revisa tu progreso antes de continuar."
 }

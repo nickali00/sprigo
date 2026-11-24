@@ -5,7 +5,7 @@
 import { useSyncExternalStore } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
-import { getSetting, isCompanion, isTauri } from "./db";
+import { getSetting, isCompanion, isTauri, isWeb } from "./db";
 import { ELEVEN_VOICES, LOCAL_TTS, elevenRequest, localRequest, type ByteRequest, type LocalTts } from "./ttsCloud";
 import { pickSystemVoice } from "./voices";
 import { mouthBright, mouthLevel, remember, zcr } from "./audio";
@@ -22,13 +22,14 @@ export const TTS_KEY = isCompanion ? "tts.phone" : "tts";
 const synth: SpeechSynthesis | undefined = typeof speechSynthesis === "undefined" ? undefined : speechSynthesis;
 export const ttsProvider = async (): Promise<TtsProvider> => {
   const v = await getSetting(TTS_KEY);
-  return ((v === "kokoro" || v === "elevenlabs" || v === "local") && !isCompanion) || v === "piper" ? v : synth ? "system" : "piper";
+  return ((v === "kokoro" || (v === "elevenlabs" && !isWeb) || v === "local") && !isCompanion) || v === "piper" ? v : synth ? "system" : "piper";
 };
 
 // ponytail: the dev browser preview has no keychain, so it keeps the key in localStorage. Never used in the app.
 const DEV_KEY = "sprigo.devkey.elevenlabs";
-export const getElevenKey = () => (isTauri ? invoke<string | null>("secret_get", { key: "tts-key.elevenlabs" }) : Promise.resolve(localStorage.getItem(DEV_KEY)));
+export const getElevenKey = () => isWeb ? Promise.resolve(null) : (isTauri ? invoke<string | null>("secret_get", { key: "tts-key.elevenlabs" }) : Promise.resolve(localStorage.getItem(DEV_KEY)));
 export async function setElevenKey(value: string | null) {
+  if (isWeb && value) throw new Error("Cloud provider keys are disabled in the browser edition");
   if (isTauri) return invoke("secret_set", { key: "tts-key.elevenlabs", value });
   value ? localStorage.setItem(DEV_KEY, value) : localStorage.removeItem(DEV_KEY);
 }
@@ -281,7 +282,7 @@ async function viaBytes(cacheKey: string, req: () => Promise<ByteRequest>, mine:
 }
 
 const elevenLine = (text: string, lang: string, voice: string, key?: string, speed = 1) => () =>
-  (key ? Promise.resolve(key) : getElevenKey()).then((k) => {
+  (isWeb ? Promise.reject(new Error("ElevenLabs is disabled in the browser edition")) : key ? Promise.resolve(key) : getElevenKey()).then((k) => {
     if (!k) throw new Error("No ElevenLabs key");
     return elevenRequest(k, voice, text, lang, speed);
   });

@@ -10,6 +10,7 @@ Requires Docker Compose, OpenSSL and an Ollama server reachable from Docker. Pul
 cd deploy/web
 cp .env.example .env
 # Set SPRIGO_ACCESS_PASSWORD in .env to a random secret (for example, use `openssl rand -base64 32`).
+# To allow account creation, set a different SPRIGO_SETUP_SECRET with `openssl rand -base64 32`.
 # Edit .env: set SPRIGO_BIND_IP to this server's LAN or VPN address for other devices.
 # Set SPRIGO_UID and SPRIGO_GID to the local account that runs Docker (id -u, id -g).
 ./web-cert.sh 192.168.1.50  # replace with the address or DNS name used in the browser
@@ -35,6 +36,6 @@ Only the configured Ollama model is proxied. Speech recognition in this experime
 
 ## Shared account security
 
-Enter the site access password with username `sprigo` when your browser asks. Then create an individual shared account with a password of at least eight characters. Registration and login are rate limited, registration and database imports have size limits, and the server limits SQL queries and request time. The account session uses a Secure, HttpOnly, SameSite cookie. The site password is kept in ignored `.env`; account data is kept in ignored `server-data/`.
+Enter the site access password with username `sprigo` when your browser asks. To create an individual shared account, ask the operator for the setup secret and choose a password of at least eight characters. Set `SPRIGO_SETUP_SECRET` in the ignored `.env` file to a different random value of at least 24 characters; if it is empty, new account creation is disabled. The operator can remove it and restart the container after creating accounts. Share it only with invited users. Registration and login are rate limited, registration and database imports have size limits, and the server limits SQL queries and request time. The account session uses a Secure, HttpOnly, SameSite cookie. Account data is kept in ignored `server-data/`.
 
-The server is configured for one Ollama model and does not store a cloud AI API key. If a browser user separately chooses a cloud provider, the current client stores that key in that browser's localStorage; it is not synchronized with the account. Treat this mode as experimental and avoid storing cloud keys in a shared browser. A stale device write is rejected and its page reloads instead of silently overwriting newer progress. There is still no general merge of simultaneous edits; use one device at a time.
+The browser edition offers only the configured Ollama provider, local Whisper and local speech voices. Cloud provider keys are disabled in the browser edition; any keys left in this browser by older versions are ignored. Desktop key handling is unchanged. A stale device write is rejected and its page reloads with a warning instead of silently overwriting newer progress. There is still no general merge of simultaneous edits; use one device at a time.

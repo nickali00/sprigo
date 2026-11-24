@@ -18,5 +18,8 @@
   "passwordHint": "Au moins 8 caractères. Tu en auras besoin sur les autres appareils.",
   "confirmPassword": "Confirmer le mot de passe",
   "passwordMismatch": "Les mots de passe ne correspondent pas.",
-  "loginPasswordHint": "Saisis le mot de passe de ton compte."
+  "loginPasswordHint": "Saisis le mot de passe de ton compte.",
+  "setupSecret": "Secret de configuration de l’administrateur",
+  "oneDevice": "Pour plus de sécurité, utilisez un seul appareil à la fois.",
+  "staleReload": "Votre compte a changé sur un autre appareil. La page a été rechargée ; vérifiez votre progression avant de continuer."
 }

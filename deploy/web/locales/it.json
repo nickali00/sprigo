@@ -18,5 +18,8 @@
   "passwordHint": "Almeno 8 caratteri. Ti servirà sugli altri dispositivi.",
   "confirmPassword": "Conferma password",
   "passwordMismatch": "Le password non coincidono.",
-  "loginPasswordHint": "Inserisci la password del tuo account."
+  "loginPasswordHint": "Inserisci la password del tuo account.",
+  "setupSecret": "Segreto di configurazione dell'operatore",
+  "oneDevice": "Per proteggere i progressi, usa un dispositivo alla volta.",
+  "staleReload": "L’account è stato modificato su un altro dispositivo. La pagina è stata ricaricata: controlla i progressi prima di continuare."
 }

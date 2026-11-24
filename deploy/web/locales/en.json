@@ -18,5 +18,8 @@
   "passwordHint": "At least 8 characters. You will need it on other devices.",
   "confirmPassword": "Confirm password",
   "passwordMismatch": "Passwords do not match.",
-  "loginPasswordHint": "Enter your account password."
+  "loginPasswordHint": "Enter your account password.",
+  "setupSecret": "Operator setup secret",
+  "oneDevice": "For the safest progress, use one device at a time.",
+  "staleReload": "Your account changed on another device. This page was reloaded; check your progress before continuing."
 }

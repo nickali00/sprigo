@@ -2,18 +2,19 @@
 import { mark } from "./latency";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
-import { isTauri, isCompanion, getSetting } from "./db";
+import { isTauri, isCompanion, isWeb, getSetting } from "./db";
 import { VAD, VAD_IDLE, concat, resample, rms, vadStep, type VadEvent } from "./audio";
 import { wav16 } from "./wav";
 import { speechMetrics, type Utterance } from "./speech";
 
 export type SttProvider = "whisper" | "deepgram";
-export const sttProvider = async (): Promise<SttProvider> => ((await getSetting("stt")) === "deepgram" ? "deepgram" : "whisper");
+export const sttProvider = async (): Promise<SttProvider> => !isWeb && (await getSetting("stt")) === "deepgram" ? "deepgram" : "whisper";
 
 // ponytail: the dev browser preview has no keychain, so it keeps the key in localStorage. Never used in the app.
 const DEV_KEY = "sprigo.devkey.deepgram";
-export const getDeepgramKey = () => (isTauri ? invoke<string | null>("secret_get", { key: "stt-key.deepgram" }) : Promise.resolve(localStorage.getItem(DEV_KEY)));
+export const getDeepgramKey = () => isWeb ? Promise.resolve(null) : (isTauri ? invoke<string | null>("secret_get", { key: "stt-key.deepgram" }) : Promise.resolve(localStorage.getItem(DEV_KEY)));
 export async function setDeepgramKey(value: string | null) {
+  if (isWeb && value) throw new Error("Cloud provider keys are disabled in the browser edition");
   if (isTauri) return invoke("secret_set", { key: "stt-key.deepgram", value });
   value ? localStorage.setItem(DEV_KEY, value) : localStorage.removeItem(DEV_KEY);
 }
@@ -21,6 +22,7 @@ export async function setDeepgramKey(value: string | null) {
 const http = (isTauri ? tauriFetch : window.fetch.bind(window)) as typeof fetch;
 /** Deepgram nova-3 transcript of a 16 kHz WAV; throws with the server's message on HTTP errors. */
 export async function deepgramTranscribe(wav: Uint8Array, lang: string, key?: string | null): Promise<string> {
+  if (isWeb) throw new Error("Deepgram is disabled in the browser edition");
   key ??= await getDeepgramKey();
   if (!key) throw new Error("No Deepgram key");
   const r = await http(`https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&language=${encodeURIComponent(lang.slice(0, 2))}`, {

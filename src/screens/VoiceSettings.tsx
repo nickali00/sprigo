@@ -123,7 +123,7 @@ function TtsSheet({ initial, onChange }: { initial: TtsProvider; onChange: (v: T
     <div className="od-stack" style={sheet}>
       <h3 style={{ textAlign: "center" }}>{t("settings.tts")}</h3>
       <div className="od-stack" style={gap("8px")} role="radiogroup" aria-label={t("settings.tts")}>
-        {TTS.filter(({ p }) => !(isCompanion && p !== "system" && p !== "piper")).map(({ p, bars, color }) => (
+        {TTS.filter(({ p }) => p !== "elevenlabs" || !isWeb).filter(({ p }) => !(isCompanion && p !== "system" && p !== "piper")).map(({ p, bars, color }) => (
           <div key={p} className={`voice-option${v === p ? " on" : ""}`}>
             <button role="radio" aria-checked={v === p} disabled={pct !== null || !ttsSpeaks(p, lang)} onClick={() => pick(p)}>
               <Signal bars={bars} color={color} />
@@ -322,7 +322,7 @@ function SttSheet({ initial, onChange }: { initial: SttProvider; onChange: (v: S
     <div className="od-stack" style={sheet}>
       <h3 style={{ textAlign: "center" }}>{t("settings.stt")}</h3>
       <div className="od-stack" style={gap("8px")} role="radiogroup" aria-label={t("settings.stt")}>
-        {STT.map(({ p, icon, color }) => (
+        {STT.filter(({ p }) => !isWeb || p === "whisper").map(({ p, icon, color }) => (
           <div key={p} className={`voice-option${v === p ? " on" : ""}`}>
             <button role="radio" aria-checked={v === p} onClick={() => pick(p)}>
               <span className="voice-icon" style={{ color }}><Icon name={icon} /></span>

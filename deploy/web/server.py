@@ -32,6 +32,7 @@ MODEL = os.environ.get('MODEL_NAME', 'qwen3:8b')
 MAX_BODY = 2 * 1024 * 1024
 MAX_ACCOUNT_BODY = 12 * 1024 * 1024
 ACCESS_PASSWORD = os.environ.get("SPRIGO_ACCESS_PASSWORD", "")
+SETUP_SECRET = os.environ.get("SPRIGO_SETUP_SECRET", "")
 ACCOUNTS = Accounts(Path(os.environ.get('DATA_DIR', '/app/data')))
 ATTEMPTS: dict[tuple[str, str], list[float]] = {}
 ATTEMPTS_LOCK = threading.Lock()
@@ -162,6 +163,9 @@ class App(SimpleHTTPRequestHandler):
         if path == '/account/register':
             if limited(('register', self.client_address[0]), 3, 3600, consume=True):
                 return self.reply(429, b'Too many registrations')
+            supplied = data.get('setupSecret')
+            if not SETUP_SECRET or not isinstance(supplied, str) or not hmac.compare_digest(supplied, SETUP_SECRET):
+                return self.reply(403, b'Valid operator setup secret required')
             encoded = data.get('localDb')
             local = base64.b64decode(encoded, validate=True) if encoded is not None else None
             token = ACCOUNTS.register(data.get('username', ''), data.get('password', ''), local)
@@ -284,23 +288,13 @@ class LimitedServer(ThreadingHTTPServer):
         self.slots = threading.BoundedSemaphore(8)
         super().__init__(address, handler)
 
-    def get_request(self):
-        connection, address = super().get_request()
-        connection.settimeout(10)
-        if self.tls:
-            try:
-                connection = self.tls.wrap_socket(connection, server_side=True)
-            except OSError:
-                connection.close()
-                raise
-        return connection, address
-
     def process_request(self, request, client_address):
         if not self.slots.acquire(blocking=False):
-            try:
-                request.sendall(b'HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
-            except OSError:
-                pass
+            if not self.tls:
+                try:
+                    request.sendall(b'HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
+                except OSError:
+                    pass
             self.shutdown_request(request)
             return
         try:
@@ -311,6 +305,13 @@ class LimitedServer(ThreadingHTTPServer):
 
     def process_request_thread(self, request, client_address):
         try:
+            if self.tls:
+                try:
+                    request.settimeout(3)
+                    request = self.tls.wrap_socket(request, server_side=True)
+                except OSError:
+                    self.shutdown_request(request)
+                    return
             super().process_request_thread(request, client_address)
         finally:
             self.slots.release()
@@ -332,6 +333,8 @@ class CertOnly(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     if len(ACCESS_PASSWORD) < 20:
         raise SystemExit('SPRIGO_ACCESS_PASSWORD must be at least 20 characters')
+    if SETUP_SECRET and (len(SETUP_SECRET) < 24 or hmac.compare_digest(SETUP_SECRET, ACCESS_PASSWORD)):
+        raise SystemExit('SPRIGO_SETUP_SECRET must be at least 24 characters and differ from SPRIGO_ACCESS_PASSWORD')
     cert_server = LimitedServer(('0.0.0.0', 1432), CertOnly)
     threading.Thread(target=cert_server.serve_forever, daemon=True).start()
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

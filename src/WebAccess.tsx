@@ -59,6 +59,7 @@ function AccountGate() {
   const [create, setCreate] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [setupSecret, setSetupSecret] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [copy, setCopy] = useState(true);
   const [local, setLocal] = useState<ArrayBuffer | null>(null);
@@ -72,7 +73,7 @@ function AccountGate() {
     if (create && password !== confirmPassword) { setError(t("webAccount.passwordMismatch")); setBusy(false); return; }
     try {
       await post(create ? "register" : "login", {
-        username, password, ...(create && copy && local ? { localDb: base64(local) } : {}),
+        username, password, ...(create ? { setupSecret } : {}), ...(create && copy && local ? { localDb: base64(local) } : {}),
       });
       location.reload();
     } catch (e) { setError((e as Error).message); setBusy(false); }
@@ -83,6 +84,7 @@ function AccountGate() {
       <div className="card od-stack" style={{ "--od-gap": "14px" } as React.CSSProperties}>
         <h1 className="section-title" style={{ margin: 0 }}>{t(create ? "webAccount.create" : "webAccount.login")}</h1>
         <p className="muted small">{t("webAccount.description")}</p>
+        <p className="muted small">{t("webAccount.oneDevice")}</p>
         <form className="od-stack" style={{ "--od-gap": "12px" } as React.CSSProperties} onSubmit={submit}>
           <label className="od-field"><b>{t("webAccount.username")}</b>
             <input className="input" autoComplete="username" required minLength={3} maxLength={32} pattern="[A-Za-z0-9_.-]{3,32}" value={username} onChange={(e) => setUsername(e.target.value)} />
@@ -94,6 +96,9 @@ function AccountGate() {
           </label>
           {create && <label className="od-field"><b>{t("webAccount.confirmPassword")}</b>
             <input className="input" type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          </label>}
+          {create && <label className="od-field"><b>{t("webAccount.setupSecret")}</b>
+            <input className="input" type="password" autoComplete="off" required value={setupSecret} onChange={(e) => setSetupSecret(e.target.value)} />
           </label>}
           {create && local && <label className="od-row" style={{ gap: 8, alignItems: "flex-start" }}>
             <input type="checkbox" checked={copy} onChange={(e) => setCopy(e.target.checked)} />
@@ -112,7 +117,10 @@ function AccountGate() {
 }
 
 export function WebAccessGate({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [webMode] = useState<WebMode>(() => isWeb ? mode() : "local");
+  const [stale] = useState(() => isWeb && sessionStorage.getItem("sprigo.web.stale") === "1");
+  useEffect(() => { if (stale) sessionStorage.removeItem("sprigo.web.stale"); }, [stale]);
   const [checking, setChecking] = useState(isWeb && webMode === "account");
   const [account, setAccount] = useState<string | null>(null);
   useEffect(() => {
@@ -128,7 +136,10 @@ export function WebAccessGate({ children }: { children: ReactNode }) {
       try {
         const response = await fetch("/account/revision", { credentials: "same-origin", cache: "no-store" });
         if (response.status === 401) return location.reload();
-        if (response.ok && (await response.json()).revision > seenSharedRevision()) location.reload();
+        if (response.ok && (await response.json()).revision > seenSharedRevision()) {
+          sessionStorage.setItem("sprigo.web.stale", "1");
+          location.reload();
+        }
       } catch { /* stay on the current page while the network is unavailable */ }
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -140,7 +151,10 @@ export function WebAccessGate({ children }: { children: ReactNode }) {
     useLocal: () => { void post("logout", {}).then(() => choose("local")).catch((error) => window.alert((error as Error).message)); }, useAccount: () => choose("account"),
     signOut: async () => { await post("logout", {}); location.reload(); },
   };
-  return <C.Provider value={value}>{isWeb && webMode === "account" && !account ? <AccountGate /> : children}</C.Provider>;
+  return <C.Provider value={value}>
+    {isWeb && webMode === "account" && stale && <p role="alert" className="card" style={{ margin: 12 }}>{t("webAccount.staleReload")}</p>}
+    {isWeb && webMode === "account" && !account ? <AccountGate /> : children}
+  </C.Provider>;
 }
 
 /** Visible both at the profile gate and in Settings, so either choice stays reversible. */
@@ -152,6 +166,7 @@ export function WebAccountControls() {
     <span className="od-field"><b>{t(access.mode === "account" ? "webAccount.sharedTitle" : "webAccount.localTitle")}</b>
       <span className="muted small">{access.mode === "account" ? t("webAccount.sharedDesc", { name: access.account }) : t("webAccount.localDesc")}</span>
     </span>
+    {access.mode === "account" && <p className="muted small">{t("webAccount.oneDevice")}</p>}
     <button className="btn btn-ghost btn-block" onClick={access.mode === "account" ? access.useLocal : access.useAccount}>
       {t(access.mode === "account" ? "webAccount.useLocal" : "webAccount.useShared")}
     </button>
